@@ -18,6 +18,8 @@ export interface EmailTarget {
   sentAt?: Date;
   failureReason?: string;
   retryCount: number;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface EmailProvider {

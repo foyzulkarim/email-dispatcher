@@ -1,8 +1,10 @@
 import mongoose, { Schema, Document } from 'mongoose';
 import { EmailTarget } from '../types';
 
-interface EmailTargetDocument extends Omit<EmailTarget, 'id'>, Document {
+interface EmailTargetDocument extends Omit<EmailTarget, 'id' | 'createdAt' | 'updatedAt'>, Document {
   id: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 const emailTargetSchema = new Schema<EmailTargetDocument>({

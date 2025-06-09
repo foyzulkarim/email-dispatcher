@@ -111,13 +111,17 @@ export default async function emailRoutes(fastify: FastifyInstance) {
       return reply.send({
         success: true,
         data: {
-          job: {
-            id: job.id,
-            subject: job.subject,
-            status: job.status,
-            createdAt: job.createdAt,
-            updatedAt: job.updatedAt
-          },
+          id: job.id,
+          subject: job.subject,
+          status: job.status,
+          recipientCount: targets.length,
+          processedCount: stats.sent + stats.failed + stats.blocked,
+          successCount: stats.sent,
+          failedCount: stats.failed + stats.blocked,
+          createdAt: job.createdAt,
+          updatedAt: job.updatedAt,
+          completedAt: job.status === 'completed' ? job.updatedAt : undefined,
+          metadata: job.metadata || {},
           stats
         }
       } as ApiResponse);
@@ -145,7 +149,7 @@ export default async function emailRoutes(fastify: FastifyInstance) {
       const status = request.query.status;
 
       const filter: any = {};
-      if (status) {
+      if (status && status !== 'all') {
         filter.status = status;
       }
 
@@ -155,22 +159,42 @@ export default async function emailRoutes(fastify: FastifyInstance) {
         EmailJobModel.find(filter)
           .sort({ createdAt: -1 })
           .skip(skip)
-          .limit(limit)
-          .select('id subject status createdAt updatedAt recipients'),
+          .limit(limit),
         EmailJobModel.countDocuments(filter)
       ]);
+
+      // Get detailed stats for each job
+      const jobsWithStats = await Promise.all(
+        jobs.map(async (job) => {
+          const targets = await EmailTargetModel.find({ jobId: job.id });
+          const stats = {
+            total: targets.length,
+            pending: targets.filter(t => t.status === 'pending').length,
+            sent: targets.filter(t => t.status === 'sent').length,
+            failed: targets.filter(t => t.status === 'failed').length,
+            blocked: targets.filter(t => t.status === 'blocked').length
+          };
+
+          return {
+            id: job.id,
+            subject: job.subject,
+            status: job.status,
+            recipientCount: targets.length,
+            processedCount: stats.sent + stats.failed + stats.blocked,
+            successCount: stats.sent,
+            failedCount: stats.failed + stats.blocked,
+            createdAt: job.createdAt,
+            updatedAt: job.updatedAt,
+            completedAt: job.status === 'completed' ? job.updatedAt : undefined,
+            metadata: job.metadata || {}
+          };
+        })
+      );
 
       return reply.send({
         success: true,
         data: {
-          jobs: jobs.map(job => ({
-            id: job.id,
-            subject: job.subject,
-            status: job.status,
-            recipientCount: job.recipients.length,
-            createdAt: job.createdAt,
-            updatedAt: job.updatedAt
-          })),
+          jobs: jobsWithStats,
           pagination: {
             page,
             limit,
@@ -182,6 +206,47 @@ export default async function emailRoutes(fastify: FastifyInstance) {
 
     } catch (error) {
       fastify.log.error('Error getting jobs:', error);
+      return reply.code(500).send({
+        success: false,
+        error: 'Internal server error'
+      } as ApiResponse);
+    }
+  });
+
+  // Get job targets (individual email statuses)
+  fastify.get<{ Params: { jobId: string } }>('/job/:jobId/targets', async (request, reply) => {
+    try {
+      const { jobId } = request.params;
+
+      // Check if job exists
+      const job = await EmailJobModel.findOne({ id: jobId });
+      if (!job) {
+        return reply.code(404).send({
+          success: false,
+          error: 'Job not found'
+        } as ApiResponse);
+      }
+
+      // Get all targets for this job
+      const targets = await EmailTargetModel.find({ jobId }).sort({ createdAt: -1 });
+
+      return reply.send({
+        success: true,
+        data: targets.map(target => ({
+          id: target.id,
+          email: target.email,
+          status: target.status,
+          providerId: target.providerId,
+          sentAt: target.sentAt,
+          failureReason: target.failureReason,
+          retryCount: target.retryCount,
+          createdAt: target.createdAt,
+          updatedAt: target.updatedAt
+        }))
+      } as ApiResponse);
+
+    } catch (error) {
+      fastify.log.error('Error getting job targets:', error);
       return reply.code(500).send({
         success: false,
         error: 'Internal server error'

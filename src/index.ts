@@ -4,10 +4,12 @@ import dotenv from 'dotenv';
 import { connectToDatabase } from './utils/database';
 import { providerService } from './services/ProviderService';
 import { emailWorker } from './services/EmailWorker';
+import { databaseService } from './services/DatabaseService';
 import emailRoutes from './routes/email';
 import providerRoutes from './routes/provider';
 import webhookRoutes from './routes/webhook';
 import dashboardRoutes from './routes/dashboard';
+import databaseRoutes from './routes/database';
 
 // Load environment variables
 dotenv.config();
@@ -29,6 +31,9 @@ async function start() {
     // Connect to database
     await connectToDatabase();
 
+    // Initialize database (indexes, demo data if needed)
+    await databaseService.initializeDatabase();
+
     // Initialize providers
     await providerService.initializeProviders();
 
@@ -43,6 +48,7 @@ async function start() {
     await server.register(providerRoutes, { prefix: '/api/provider' });
     await server.register(webhookRoutes, { prefix: '/api/webhook' });
     await server.register(dashboardRoutes, { prefix: '/api/dashboard' });
+    await server.register(databaseRoutes, { prefix: '/api/database' });
 
     // Health check endpoint
     server.get('/health', async (request, reply) => {

@@ -9,8 +9,7 @@ const suppressionSchema = new Schema<SuppressionDocument>({
     required: true,
     unique: true,
     lowercase: true,
-    trim: true,
-    index: true
+    trim: true
   },
   reason: {
     type: String,
@@ -27,8 +26,7 @@ const suppressionSchema = new Schema<SuppressionDocument>({
   collection: 'suppression_list'
 });
 
-// Index for fast email lookups during job submission
-suppressionSchema.index({ email: 1 });
+// Index for fast lookups during job submission
 suppressionSchema.index({ reason: 1, addedAt: -1 });
 
 export const SuppressionModel = mongoose.model<SuppressionDocument>('Suppression', suppressionSchema);
