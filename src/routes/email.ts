@@ -4,20 +4,65 @@ import { EmailJobRequest, ApiResponse } from '../types';
 import { EmailJobModel } from '../models/EmailJob';
 import { EmailTargetModel } from '../models/EmailTarget';
 import { SuppressionModel } from '../models/Suppression';
+import { queueService } from '../services/QueueService';
+import { templateService } from '../services/TemplateService';
 
 export default async function emailRoutes(fastify: FastifyInstance) {
   
   // Submit new email job
   fastify.post<{ Body: EmailJobRequest }>('/submit', async (request, reply) => {
     try {
-      const { subject, body, recipients, metadata } = request.body;
+      const { subject, body, templateId, templateVariables, recipients, metadata } = request.body;
 
-      // Validate input
-      if (!subject || !body || !recipients || recipients.length === 0) {
+      // Validate input - either direct email or template-based
+      if (!recipients || recipients.length === 0) {
         return reply.code(400).send({
           success: false,
-          error: 'Missing required fields: subject, body, and recipients'
+          error: 'Missing required field: recipients'
         } as ApiResponse);
+      }
+
+      // Validate email content - either direct or template-based
+      const isDirectEmail = subject && body;
+      const isTemplateEmail = templateId;
+
+      if (!isDirectEmail && !isTemplateEmail) {
+        return reply.code(400).send({
+          success: false,
+          error: 'Either provide subject+body for direct email OR templateId for template-based email'
+        } as ApiResponse);
+      }
+
+      if (isDirectEmail && isTemplateEmail) {
+        return reply.code(400).send({
+          success: false,
+          error: 'Cannot use both direct email (subject+body) and template-based email in the same request'
+        } as ApiResponse);
+      }
+
+      let finalSubject = subject || '';
+      let finalBody = body || '';
+      let processedTemplateId = templateId;
+      let processedTemplateVariables = templateVariables;
+
+      // If template-based, process the template
+      if (isTemplateEmail && templateId) {
+        try {
+          // Process template to get subject and body
+          const processedTemplate = await templateService.processTemplate(
+            templateId, 
+            templateVariables || {}
+          );
+          
+          finalSubject = processedTemplate.subject;
+          finalBody = processedTemplate.htmlContent;
+          
+        } catch (templateError) {
+          return reply.code(400).send({
+            success: false,
+            error: `Template processing error: ${templateError instanceof Error ? templateError.message : 'Unknown error'}`
+          } as ApiResponse);
+        }
       }
 
       // Filter out suppressed emails
@@ -39,11 +84,13 @@ export default async function emailRoutes(fastify: FastifyInstance) {
       const jobId = uuidv4();
       const emailJob = new EmailJobModel({
         id: jobId,
-        subject,
-        body,
+        subject: finalSubject,
+        body: finalBody,
         recipients: validRecipients,
         status: 'pending',
-        metadata: metadata || {}
+        metadata: metadata || {},
+        templateId: processedTemplateId,
+        templateVariables: processedTemplateVariables || {}
       });
 
       await emailJob.save();
@@ -58,6 +105,16 @@ export default async function emailRoutes(fastify: FastifyInstance) {
       }));
 
       await EmailTargetModel.insertMany(emailTargets);
+
+      // Add job to processing queue
+      try {
+        await queueService.publishJob(jobId);
+        console.log(`📨 Job ${jobId} added to processing queue`);
+      } catch (queueError) {
+        console.error('Failed to add job to queue:', queueError);
+        // Job is still created, but not queued for processing
+        // You might want to handle this differently in production
+      }
 
       // Log suppressed emails
       const suppressedCount = recipients.length - validRecipients.length;

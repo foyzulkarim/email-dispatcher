@@ -2,12 +2,19 @@ import { FastifyInstance } from 'fastify';
 import { ApiResponse } from '../types';
 import { EmailProviderModel } from '../models/EmailProvider';
 import { v4 as uuidv4 } from 'uuid';
+import { getProviderConfig, validateProviderConfig } from '../config/providers';
+import { emailProviderService } from '../services/EmailProviderService';
 
 interface CreateProviderRequest {
   name: string;
-  type: 'brevo' | 'mailerlite';
+  type: 'brevo' | 'mailerlite' | 'sendgrid' | 'mailgun' | 'postmark' | 'mailjet' | 'ses' | 'custom';
   apiKey: string;
   dailyQuota: number;
+}
+
+interface TestProviderRequest {
+  providerId: string;
+  testEmail: string;
 }
 
 export default async function providerRoutes(fastify: FastifyInstance) {
@@ -25,11 +32,12 @@ export default async function providerRoutes(fastify: FastifyInstance) {
         } as ApiResponse);
       }
 
-      // Validate type
-      if (!['brevo', 'mailerlite'].includes(type)) {
+      // Validate type and get provider config
+      const config = getProviderConfig(type);
+      if (!config) {
         return reply.code(400).send({
           success: false,
-          error: 'Invalid provider type. Must be either "brevo" or "mailerlite"'
+          error: 'Invalid provider type. Supported types: brevo, mailerlite, sendgrid, mailgun, postmark, mailjet, ses, custom'
         } as ApiResponse);
       }
 
@@ -50,7 +58,7 @@ export default async function providerRoutes(fastify: FastifyInstance) {
         } as ApiResponse);
       }
 
-      // Create new provider
+      // Create new provider with configuration
       const newProvider = new EmailProviderModel({
         id: uuidv4(),
         name: name.trim(),
@@ -59,7 +67,8 @@ export default async function providerRoutes(fastify: FastifyInstance) {
         dailyQuota,
         usedToday: 0,
         isActive: true,
-        lastResetDate: new Date()
+        lastResetDate: new Date(),
+        config
       });
 
       await newProvider.save();
@@ -221,6 +230,100 @@ export default async function providerRoutes(fastify: FastifyInstance) {
 
     } catch (error) {
       fastify.log.error('Error getting provider stats:', error);
+      return reply.code(500).send({
+        success: false,
+        error: 'Internal server error'
+      } as ApiResponse);
+    }
+  });
+
+  // Test provider by sending a test email
+  fastify.post<{ Body: TestProviderRequest }>('/test', async (request, reply) => {
+    try {
+      const { providerId, testEmail } = request.body;
+
+      // Validate required fields
+      if (!providerId || !testEmail) {
+        return reply.code(400).send({
+          success: false,
+          error: 'Missing required fields: providerId, testEmail'
+        } as ApiResponse);
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(testEmail)) {
+        return reply.code(400).send({
+          success: false,
+          error: 'Invalid email format'
+        } as ApiResponse);
+      }
+
+      // Find the provider
+      const provider = await EmailProviderModel.findOne({ id: providerId });
+      if (!provider) {
+        return reply.code(404).send({
+          success: false,
+          error: 'Provider not found'
+        } as ApiResponse);
+      }
+
+      if (!provider.isActive) {
+        return reply.code(400).send({
+          success: false,
+          error: 'Provider is not active'
+        } as ApiResponse);
+      }
+
+      // Prepare test email
+      const emailRequest = {
+        to: testEmail,
+        toName: testEmail.split('@')[0],
+        subject: `Test Email from ${provider.name}`,
+        htmlContent: `
+          <h2>Test Email</h2>
+          <p>This is a test email sent from <strong>${provider.name}</strong> provider.</p>
+          <p>Provider Type: <strong>${provider.type}</strong></p>
+          <p>Sent at: <strong>${new Date().toISOString()}</strong></p>
+          <hr>
+          <p><small>This email was sent to test the email provider configuration.</small></p>
+        `,
+        textContent: `Test Email - This is a test email sent from ${provider.name} provider (${provider.type}) at ${new Date().toISOString()}`,
+        fromEmail: process.env.DEFAULT_FROM_EMAIL || 'noreply@example.com',
+        fromName: process.env.DEFAULT_FROM_NAME || 'Email Service Test',
+        metadata: { test: true, providerId }
+      };
+
+      // Send test email
+      const response = await emailProviderService.sendEmail(provider, emailRequest);
+
+      if (response.success) {
+        // Update provider usage
+        await emailProviderService.incrementProviderUsage(provider.id);
+        
+        return reply.send({
+          success: true,
+          data: {
+            messageId: response.messageId,
+            provider: {
+              id: provider.id,
+              name: provider.name,
+              type: provider.type
+            },
+            testEmail,
+            sentAt: new Date().toISOString()
+          },
+          message: 'Test email sent successfully!'
+        } as ApiResponse);
+      } else {
+        return reply.code(500).send({
+          success: false,
+          error: response.error || 'Failed to send test email'
+        } as ApiResponse);
+      }
+
+    } catch (error) {
+      fastify.log.error('Error testing provider:', error);
       return reply.code(500).send({
         success: false,
         error: 'Internal server error'

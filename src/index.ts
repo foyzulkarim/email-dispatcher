@@ -5,11 +5,16 @@ import { connectToDatabase } from './utils/database';
 import { providerService } from './services/ProviderService';
 import { emailWorker } from './services/EmailWorker';
 import { databaseService } from './services/DatabaseService';
+import { queueService } from './services/QueueService';
+import { emailProcessorService } from './services/EmailProcessorService';
+import { debugEmailService } from './services/DebugEmailService';
 import emailRoutes from './routes/email';
 import providerRoutes from './routes/provider';
+import dynamicProviderRoutes from './routes/dynamic-provider';
 import webhookRoutes from './routes/webhook';
 import dashboardRoutes from './routes/dashboard';
 import databaseRoutes from './routes/database';
+import templateRoutes from './routes/template';
 
 // Load environment variables
 dotenv.config();
@@ -40,15 +45,35 @@ async function start() {
     // Start quota reset scheduler
     await providerService.startQuotaResetScheduler();
 
-    // Start email worker
+    // Initialize RabbitMQ connection
+    try {
+      await queueService.connect();
+      
+      // Start the job consumer
+      await queueService.startConsumer(async (jobId: string) => {
+        await emailProcessorService.processJob(jobId);
+      });
+      
+      console.log('🔄 Email job processor started');
+    } catch (error) {
+      console.error('❌ Failed to initialize RabbitMQ:', error);
+      console.log('⚠️  Server will continue without queue processing');
+    }
+
+    // Start email worker (keeping the existing worker for now)
     await emailWorker.start();
+
+    // Initialize debug email service and cleanup old files
+    await debugEmailService.cleanupOldFiles();
 
     // Register routes
     await server.register(emailRoutes, { prefix: '/api/email' });
     await server.register(providerRoutes, { prefix: '/api/provider' });
+    await server.register(dynamicProviderRoutes, { prefix: '/api/dynamic-provider' });
     await server.register(webhookRoutes, { prefix: '/api/webhook' });
     await server.register(dashboardRoutes, { prefix: '/api/dashboard' });
     await server.register(databaseRoutes, { prefix: '/api/database' });
+    await server.register(templateRoutes, { prefix: '/api/template' });
 
     // Health check endpoint
     server.get('/health', async (request, reply) => {
@@ -71,9 +96,22 @@ async function start() {
 // Handle graceful shutdown
 process.on('SIGINT', async () => {
   console.log('Received SIGINT, shutting down gracefully...');
-  await emailWorker.stop();
-  await server.close();
-  process.exit(0);
+  
+  try {
+    // Stop email worker
+    await emailWorker.stop();
+    
+    // Close RabbitMQ connection
+    await queueService.disconnect();
+    
+    // Close server
+    await server.close();
+    console.log('Server closed successfully');
+    process.exit(0);
+  } catch (error) {
+    console.error('Error during shutdown:', error);
+    process.exit(1);
+  }
 });
 
 start();

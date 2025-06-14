@@ -1,6 +1,7 @@
 import { EmailProviderModel } from '../models/EmailProvider';
 import { EmailTargetModel } from '../models/EmailTarget';
 import { EmailJobModel } from '../models/EmailJob';
+import { emailProviderService } from './EmailProviderService';
 
 export class EmailWorkerService {
   private isRunning = false;
@@ -123,15 +124,42 @@ export class EmailWorkerService {
   }
 
   private async sendEmailViaProvider(provider: any, target: any): Promise<boolean> {
-    // This is a simulation - in real implementation, you would:
-    // 1. Use the provider's API (Brevo, MailerLite, etc.)
-    // 2. Handle provider-specific authentication and formatting
-    // 3. Return actual success/failure status
-    
-    console.log(`Sending email to ${target.email} via ${provider.name} (${provider.type})`);
-    
-    // Simulate 95% success rate
-    return Math.random() > 0.05;
+    try {
+      // Get the job details to extract subject and body
+      const job = await EmailJobModel.findOne({ id: target.jobId });
+      
+      if (!job) {
+        console.error(`Job not found for target ${target.id}`);
+        return false;
+      }
+
+      // Prepare email request
+      const emailRequest = {
+        to: target.email,
+        toName: target.email.split('@')[0], // Use part before @ as default name
+        subject: job.subject,
+        htmlContent: job.body,
+        textContent: job.body.replace(/<[^>]*>/g, ''), // Strip HTML for text version
+        fromEmail: process.env.DEFAULT_FROM_EMAIL || 'noreply@example.com',
+        fromName: process.env.DEFAULT_FROM_NAME || 'Email Service',
+        metadata: job.metadata || {}
+      };
+
+      // Send email using the real provider service
+      const response = await emailProviderService.sendEmail(provider, emailRequest);
+      
+      if (response.success) {
+        console.log(`✅ Email sent successfully to ${target.email} via ${provider.name}: ${response.messageId}`);
+        return true;
+      } else {
+        console.error(`❌ Email failed to ${target.email} via ${provider.name}: ${response.error}`);
+        return false;
+      }
+      
+    } catch (error) {
+      console.error(`❌ Error sending email to ${target.email} via ${provider.name}:`, error);
+      return false;
+    }
   }
 
   private async handleTargetFailure(target: any, error: Error) {

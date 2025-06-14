@@ -36,6 +36,15 @@ const emailJobSchema = new Schema<EmailJobDocument>({
   metadata: {
     type: Schema.Types.Mixed,
     default: {}
+  },
+  // Template-related fields
+  templateId: {
+    type: String,
+    index: true
+  },
+  templateVariables: {
+    type: Schema.Types.Mixed,
+    default: {}
   }
 }, {
   timestamps: true,
@@ -45,6 +54,7 @@ const emailJobSchema = new Schema<EmailJobDocument>({
 // Indexes for better query performance
 emailJobSchema.index({ createdAt: -1 });
 emailJobSchema.index({ status: 1, createdAt: -1 });
+emailJobSchema.index({ templateId: 1, createdAt: -1 });
 
 export const EmailJobModel = mongoose.model<EmailJobDocument>('EmailJob', emailJobSchema);
 

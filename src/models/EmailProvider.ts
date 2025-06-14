@@ -1,8 +1,10 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { EmailProvider } from '../types';
+import { EmailProvider, EmailProviderConfig } from '../types';
 
-interface EmailProviderDocument extends Omit<EmailProvider, 'id'>, Document {
+export interface EmailProviderDocument extends Omit<EmailProvider, 'id'>, Document {
   id: string;
+  apiSecret?: string; // For providers like Mailjet that need public/private keys
+  config: EmailProviderConfig;
 }
 
 const emailProviderSchema = new Schema<EmailProviderDocument>({
@@ -18,12 +20,16 @@ const emailProviderSchema = new Schema<EmailProviderDocument>({
   },
   type: {
     type: String,
-    enum: ['brevo', 'mailerlite'],
+    enum: ['brevo', 'mailerlite', 'sendgrid', 'mailgun', 'postmark', 'mailjet', 'ses', 'custom'],
     required: true
   },
   apiKey: {
     type: String,
     required: true
+  },
+  apiSecret: {
+    type: String,
+    required: false // Only needed for some providers like Mailjet
   },
   dailyQuota: {
     type: Number,
@@ -43,6 +49,50 @@ const emailProviderSchema = new Schema<EmailProviderDocument>({
   lastResetDate: {
     type: Date,
     default: Date.now
+  },
+  config: {
+    endpoint: {
+      type: String,
+      required: true
+    },
+    method: {
+      type: String,
+      enum: ['POST', 'PUT', 'PATCH'],
+      default: 'POST'
+    },
+    headers: {
+      type: Schema.Types.Mixed,
+      required: true
+    },
+    payloadTemplate: {
+      type: Schema.Types.Mixed,
+      required: true
+    },
+    authentication: {
+      type: {
+        type: String,
+        enum: ['api-key', 'bearer', 'basic', 'custom'],
+        required: true
+      },
+      headerName: String,
+      prefix: String,
+      customHeaders: Schema.Types.Mixed
+    },
+    fieldMappings: {
+      sender: { type: String, required: true },
+      recipients: { type: String, required: true },
+      subject: { type: String, required: true },
+      htmlContent: { type: String, required: true },
+      textContent: String,
+      cc: String,
+      bcc: String,
+      attachments: String
+    },
+    responseMapping: {
+      successField: String,
+      messageIdField: String,
+      errorField: String
+    }
   }
 }, {
   timestamps: true,

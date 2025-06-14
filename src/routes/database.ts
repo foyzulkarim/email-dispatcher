@@ -4,17 +4,15 @@ import { ApiResponse } from '../types';
 
 export default async function databaseRoutes(fastify: FastifyInstance) {
   
-  // Get database connection status
+  // Get database statistics
   fastify.get('/status', async (request, reply) => {
     try {
-      const status = await databaseService.getConnectionStatus();
-      const stats = await databaseService.getProviderStats();
+      const stats = await databaseService.getStats();
       
       return reply.send({
         success: true,
         data: {
-          connection: status,
-          providerStats: stats,
+          stats,
           timestamp: new Date().toISOString()
         }
       } as ApiResponse);
@@ -47,21 +45,21 @@ export default async function databaseRoutes(fastify: FastifyInstance) {
     }
   });
   
-  // Clear all providers (for testing purposes)
-  fastify.delete('/providers/clear', async (request, reply) => {
+  // Clear all data (for testing purposes)
+  fastify.delete('/clear', async (request, reply) => {
     try {
-      await databaseService.clearProviders();
+      await databaseService.clearAllData();
       
       return reply.send({
         success: true,
-        message: 'All providers cleared successfully'
+        message: 'All data cleared successfully'
       } as ApiResponse);
       
     } catch (error) {
-      fastify.log.error('Error clearing providers:', error);
+      fastify.log.error('Error clearing data:', error);
       return reply.code(500).send({
         success: false,
-        error: 'Failed to clear providers'
+        error: 'Failed to clear data'
       } as ApiResponse);
     }
   });
