@@ -1,5 +1,4 @@
-
-import { DashboardStats, EmailJob, EmailProvider, SubmitEmailRequest, SuppressionEntry, ChartData } from "@/types/api";
+import { DashboardStats, EmailJob, EmailProvider, SubmitEmailRequest, SuppressionEntry, ChartData, DynamicProvider, DynamicProviderListResponse, DynamicProviderResponse, ProviderPreset, SimpleProviderRequest, AdvancedProviderRequest, TestProviderRequest, TestProviderResponse, BulkProviderRequest } from "@/types/api";
 
 const API_BASE_URL = "http://localhost:3001/api";
 
@@ -92,6 +91,61 @@ class ApiService {
   async removeSuppressionEntry(id: string): Promise<void> {
     await this.request(`/suppression/remove/${id}`, {
       method: 'DELETE',
+    });
+  }
+
+  // Dynamic Provider endpoints
+  async getDynamicProviders(isActive?: boolean): Promise<DynamicProviderListResponse> {
+    const params = isActive !== undefined ? `?isActive=${isActive}` : '';
+    return this.request<DynamicProviderListResponse>(`/dynamic-provider/${params}`);
+  }
+
+  async getDynamicProvider(id: string): Promise<DynamicProviderResponse> {
+    return this.request<DynamicProviderResponse>(`/dynamic-provider/${id}`);
+  }
+
+  async getProviderPresets(): Promise<{data: ProviderPreset[]}> {
+    return this.request<{data: ProviderPreset[]}>('/dynamic-provider/presets');
+  }
+
+  async createSimpleProvider(data: SimpleProviderRequest): Promise<DynamicProviderResponse> {
+    return this.request<DynamicProviderResponse>('/dynamic-provider/simple', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async createAdvancedProvider(data: AdvancedProviderRequest): Promise<DynamicProviderResponse> {
+    return this.request<DynamicProviderResponse>('/dynamic-provider/advanced', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async testProviderConfiguration(data: TestProviderRequest): Promise<{data: TestProviderResponse}> {
+    return this.request<{data: TestProviderResponse}>('/dynamic-provider/test', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateDynamicProvider(id: string, data: Partial<SimpleProviderRequest>): Promise<DynamicProviderResponse> {
+    return this.request<DynamicProviderResponse>(`/dynamic-provider/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteDynamicProvider(id: string): Promise<{message: string}> {
+    return this.request<{message: string}>(`/dynamic-provider/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async bulkProviderOperation(data: BulkProviderRequest): Promise<{message: string}> {
+    return this.request<{message: string}>('/dynamic-provider/bulk', {
+      method: 'POST',
+      body: JSON.stringify(data),
     });
   }
 }

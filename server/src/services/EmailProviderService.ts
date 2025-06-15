@@ -188,7 +188,6 @@ export class EmailProviderService {
     return {
       success,
       messageId,
-      providerMessageId: messageId,
       statusCode: response.status,
       rawResponse: response.data
     };

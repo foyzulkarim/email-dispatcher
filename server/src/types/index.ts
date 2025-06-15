@@ -79,6 +79,7 @@ export interface EmailSendRequest {
 export interface ProviderResponse {
   success: boolean;
   messageId?: string;
+  statusCode?: number;
   error?: string;
   rawResponse?: any;
 }

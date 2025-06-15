@@ -18,6 +18,8 @@ Debug mode is automatically enabled when:
 No active email providers are found
 OR
 All providers have reached their daily quota
+OR
+FORCE_DEBUG_MODE environment variable is set to 'true'
 ```
 
 ### Email Processing Flow
@@ -116,11 +118,13 @@ const response = await fetch('http://localhost:3001/api/email/submit', {
 ## 🔄 Switching Between Modes
 
 ### Enable Debug Mode
+- Set `FORCE_DEBUG_MODE=true` in your .env file, OR
 - Remove all email providers, OR
 - Deactivate all providers, OR
 - Exhaust all provider quotas
 
 ### Enable Live Mode
+- Set `FORCE_DEBUG_MODE=false` in your .env file, AND
 - Add at least one active email provider
 - Ensure provider has remaining quota
 - System automatically switches to live sending
@@ -129,6 +133,7 @@ const response = await fetch('http://localhost:3001/api/email/submit', {
 The system logs will indicate which mode is active:
 ```
 🔧 Debug mode enabled - no active providers found
+🔧 Debug mode forced via FORCE_DEBUG_MODE environment variable
 ✅ Debug email saved successfully: /path/to/mail-debug/file.html
 ```
 
@@ -155,6 +160,10 @@ rm server/mail-debug/*.html
 # Default sender information (used in debug mode)
 DEFAULT_FROM_EMAIL=noreply@yourdomain.com
 DEFAULT_FROM_NAME=Your App Name
+
+# Force debug mode (useful for development)
+# Set to 'true' to always use debug mode regardless of provider configuration
+FORCE_DEBUG_MODE=false
 ```
 
 ### Debug Directory Location
@@ -171,10 +180,20 @@ this.debugDir = path.join(process.cwd(), 'custom-debug-folder');
 ## 🎯 Best Practices
 
 ### Development Workflow
-1. **Start with Debug Mode**: Develop email features without providers
-2. **Test Email Rendering**: Use debug files to verify HTML/styling
-3. **Add Providers Gradually**: Test with real providers when ready
-4. **Monitor Logs**: Watch for mode switches in console output
+1. **Force Debug Mode**: Set `FORCE_DEBUG_MODE=true` in your .env file for development
+2. **Start with Debug Mode**: Develop email features without consuming API credits
+3. **Test Email Rendering**: Use debug files to verify HTML/styling
+4. **Add Providers Gradually**: Test with real providers when ready
+5. **Monitor Logs**: Watch for mode switches in console output
+
+### 💰 Save API Credits During Development
+```bash
+# In your .env file:
+FORCE_DEBUG_MODE=true
+
+# This ensures NO real emails are sent during development
+# All emails will be saved as HTML files in mail-debug/
+```
 
 ### Debug File Management
 - **Regular Cleanup**: Delete old debug files periodically

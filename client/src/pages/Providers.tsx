@@ -1,11 +1,11 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Settings, RefreshCw, AlertTriangle } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Settings, RefreshCw, AlertTriangle, Trash2, Edit, MoreHorizontal, Power, PowerOff } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,85 +17,157 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
-// Mock data
-const mockProviders = [
-  {
-    id: "1",
-    name: "SendGrid",
-    status: "online" as const,
-    enabled: true,
-    quotaUsed: 8420,
-    quotaTotal: 10000,
-    emailsSentToday: 1847,
-    successRate: 99.5,
-    lastActivity: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "2",
-    name: "AWS SES",
-    status: "online" as const,
-    enabled: true,
-    quotaUsed: 1250,
-    quotaTotal: 5000,
-    emailsSentToday: 892,
-    successRate: 98.8,
-    lastActivity: new Date(Date.now() - 12 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "3",
-    name: "Mailgun",
-    status: "offline" as const,
-    enabled: false,
-    quotaUsed: 0,
-    quotaTotal: 2000,
-    emailsSentToday: 0,
-    successRate: 97.2,
-    lastActivity: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(),
-  },
-  {
-    id: "4",
-    name: "Postmark",
-    status: "online" as const,
-    enabled: true,
-    quotaUsed: 1850,
-    quotaTotal: 2000,
-    emailsSentToday: 324,
-    successRate: 99.1,
-    lastActivity: new Date(Date.now() - 3 * 60 * 1000).toISOString(),
-  },
-];
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
+import { apiService } from "@/services/api";
+import { DynamicProvider } from "@/types/api";
+import { ProviderForm } from "@/components/ProviderForm";
 
 export default function Providers() {
-  const [providers, setProviders] = useState(mockProviders);
+  const [providers, setProviders] = useState<DynamicProvider[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [editingProvider, setEditingProvider] = useState<DynamicProvider | undefined>();
+  const { toast } = useToast();
 
-  const toggleProvider = (id: string, enabled: boolean) => {
-    setProviders(prev => prev.map(p => 
-      p.id === id ? { ...p, enabled } : p
-    ));
+  useEffect(() => {
+    loadProviders();
+  }, []);
+
+  const loadProviders = async () => {
+    try {
+      setIsLoading(true);
+      const response = await apiService.getDynamicProviders();
+      
+      // Ensure all providers have required numeric properties with defaults
+      // Map API response structure to UI expected structure
+      const normalizedProviders = (response.data || []).map(provider => ({
+        ...provider,
+        dailyQuota: provider.dailyQuota || 0,
+        remainingToday: provider.remainingToday || 0,
+        totalSent: provider.usedToday || provider.totalSent || 0, // API uses 'usedToday'
+        successRate: provider.successRate || 95, // Default success rate since API doesn't provide it
+        isActive: provider.isActive ?? true,
+        config: provider.config || { apiKey: '' },
+        createdAt: provider.createdAt || provider.lastResetDate || new Date().toISOString(),
+        updatedAt: provider.updatedAt || provider.lastResetDate || new Date().toISOString(),
+        lastUsed: provider.lastUsed || provider.lastResetDate
+      }));
+      
+      setProviders(normalizedProviders);
+    } catch (error) {
+      console.error('Failed to load providers:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load email providers",
+        variant: "destructive",
+      });
+      setProviders([]); // Set empty array on error
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const resetQuota = (id: string) => {
-    setProviders(prev => prev.map(p => 
-      p.id === id ? { ...p, quotaUsed: 0 } : p
-    ));
+  const toggleProvider = async (id: string, isActive: boolean) => {
+    try {
+      await apiService.updateDynamicProvider(id, { isActive });
+      await loadProviders();
+      toast({
+        title: "Provider Updated",
+        description: `Provider has been ${isActive ? 'activated' : 'deactivated'}`,
+      });
+    } catch (error) {
+      console.error('Failed to toggle provider:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update provider status",
+        variant: "destructive",
+      });
+    }
   };
 
-  const getQuotaUsageColor = (percentage: number) => {
-    if (percentage >= 90) return "bg-red-500";
-    if (percentage >= 80) return "bg-yellow-500";
-    return "bg-green-500";
+  const deleteProvider = async (id: string) => {
+    try {
+      await apiService.deleteDynamicProvider(id);
+      await loadProviders();
+      toast({
+        title: "Provider Deleted",
+        description: "Email provider has been deleted successfully",
+      });
+    } catch (error) {
+      console.error('Failed to delete provider:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete provider",
+        variant: "destructive",
+      });
+    }
   };
 
-  const getProviderIcon = (name: string) => {
-    return <Settings className="h-8 w-8 text-muted-foreground" />;
+  const getProviderIcon = (type: string) => {
+    const iconProps = { className: "h-8 w-8 text-muted-foreground" };
+    
+    switch (type.toLowerCase()) {
+      case 'sendgrid':
+        return <div {...iconProps} style={{ backgroundColor: '#1A82E2', color: 'white', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>SG</div>;
+      case 'brevo':
+        return <div {...iconProps} style={{ backgroundColor: '#0B8F47', color: 'white', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>BR</div>;
+      case 'mailgun':
+        return <div {...iconProps} style={{ backgroundColor: '#F56500', color: 'white', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>MG</div>;
+      case 'aws-ses':
+        return <div {...iconProps} style={{ backgroundColor: '#FF9900', color: 'white', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>AWS</div>;
+      case 'postmark':
+        return <div {...iconProps} style={{ backgroundColor: '#FFCC00', color: 'black', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>PM</div>;
+      default:
+        return <Settings {...iconProps} />;
+    }
   };
 
-  const totalQuotaUsed = providers.reduce((sum, p) => sum + p.quotaUsed, 0);
-  const totalQuotaLimit = providers.reduce((sum, p) => sum + p.quotaTotal, 0);
+  const getProviderStatus = (provider: DynamicProvider): 'online' | 'offline' | 'error' => {
+    if (!provider || provider.isActive === false) return 'offline';
+    // You could add more sophisticated status logic here based on recent activity, errors, etc.
+    const remainingToday = provider.remainingToday || 0;
+    return remainingToday > 0 ? 'online' : 'error';
+  };
+
+  // Calculate summary stats with safe defaults
+  const totalQuotaUsed = providers.reduce((sum, p) => {
+    const dailyQuota = p.dailyQuota || 0;
+    const remainingToday = p.remainingToday || 0;
+    return sum + Math.max(0, dailyQuota - remainingToday);
+  }, 0);
+  
+  const totalQuotaLimit = providers.reduce((sum, p) => sum + (p.dailyQuota || 0), 0);
+  
   const averageSuccessRate = providers.length 
-    ? Math.round(providers.reduce((sum, p) => sum + p.successRate, 0) / providers.length)
+    ? Math.round(providers.reduce((sum, p) => sum + (p.successRate || 0), 0) / providers.length)
     : 0;
+    
+  const activeProviders = providers.filter(p => 
+    (p.isActive === true || p.isActive === undefined) && 
+    getProviderStatus(p) === 'online'
+  ).length;
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold">Email Provider Management</h1>
+            <p className="text-muted-foreground">Manage your email service providers</p>
+          </div>
+        </div>
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -103,12 +175,15 @@ export default function Providers() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Email Provider Management</h1>
-          <p className="text-muted-foreground">Manage your email service providers</p>
+          <p className="text-muted-foreground">Manage your dynamic email service providers</p>
         </div>
-        <Button size="sm" variant="outline">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh
-        </Button>
+        <div className="flex gap-2">
+          <Button size="sm" variant="outline" onClick={loadProviders}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh
+          </Button>
+          <ProviderForm onProviderCreated={loadProviders} />
+        </div>
       </div>
 
       {/* Summary Stats */}
@@ -137,9 +212,7 @@ export default function Providers() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-muted-foreground">Active Providers</p>
-                <p className="text-2xl font-bold">
-                  {providers.filter(p => p.enabled && p.status === 'online').length}
-                </p>
+                <p className="text-2xl font-bold">{activeProviders}</p>
                 <p className="text-sm text-muted-foreground">of {providers.length} total</p>
               </div>
               <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
@@ -168,29 +241,95 @@ export default function Providers() {
       {/* Provider Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {providers.map((provider) => {
-          const quotaPercentage = (provider.quotaUsed / provider.quotaTotal) * 100;
+          // Safe calculations with fallbacks
+          const dailyQuota = provider.dailyQuota || 0;
+          const remainingToday = provider.remainingToday || 0;
+          const quotaUsed = Math.max(0, dailyQuota - remainingToday);
+          const quotaPercentage = dailyQuota > 0 ? (quotaUsed / dailyQuota) * 100 : 0;
           const isQuotaWarning = quotaPercentage >= 80;
+          const status = getProviderStatus(provider);
 
           return (
             <Card key={provider.id} className={isQuotaWarning ? "border-yellow-500" : ""}>
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    {getProviderIcon(provider.name)}
+                    {getProviderIcon(provider.type)}
                     <div>
-                      <CardTitle className="text-lg">{provider.name}</CardTitle>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        {provider.name || 'Unnamed Provider'}
+                        <Badge variant={(provider.type || '').toLowerCase() === 'custom' ? 'secondary' : 'default'}>
+                          {provider.type || 'unknown'}
+                        </Badge>
+                      </CardTitle>
                       <div className="flex items-center gap-2 mt-1">
-                        <StatusBadge status={provider.status} />
+                        <StatusBadge status={status} />
                         {isQuotaWarning && (
                           <AlertTriangle className="h-4 w-4 text-yellow-500" />
                         )}
                       </div>
                     </div>
                   </div>
-                  <Switch
-                    checked={provider.enabled}
-                    onCheckedChange={(enabled) => toggleProvider(provider.id, enabled)}
-                  />
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={provider.isActive}
+                      onCheckedChange={(checked) => toggleProvider(provider.id, checked)}
+                    />
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="sm">
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setEditingProvider(provider)}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem 
+                          onClick={() => toggleProvider(provider.id, !provider.isActive)}
+                        >
+                          {provider.isActive ? (
+                            <>
+                              <PowerOff className="h-4 w-4 mr-2" />
+                              Deactivate
+                            </>
+                          ) : (
+                            <>
+                              <Power className="h-4 w-4 mr-2" />
+                              Activate
+                            </>
+                          )}
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Provider</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete "{provider.name}"? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteProvider(provider.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -198,7 +337,7 @@ export default function Providers() {
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span>Quota Usage</span>
-                    <span>{provider.quotaUsed.toLocaleString()} / {provider.quotaTotal.toLocaleString()}</span>
+                    <span>{quotaUsed.toLocaleString()} / {dailyQuota.toLocaleString()}</span>
                   </div>
                   <Progress 
                     value={quotaPercentage} 
@@ -217,58 +356,59 @@ export default function Providers() {
                 {/* Statistics */}
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-muted-foreground">Sent Today</p>
-                    <p className="font-medium">{provider.emailsSentToday.toLocaleString()}</p>
+                    <p className="text-muted-foreground">Total Sent</p>
+                    <p className="font-medium">{(provider.totalSent || 0).toLocaleString()}</p>
                   </div>
                   <div>
                     <p className="text-muted-foreground">Success Rate</p>
-                    <p className="font-medium">{provider.successRate}%</p>
+                    <p className="font-medium">{provider.successRate || 0}%</p>
                   </div>
                 </div>
 
                 <div className="text-sm">
-                  <p className="text-muted-foreground">Last Activity</p>
+                  <p className="text-muted-foreground">Last Used</p>
                   <p className="font-medium">
-                    {new Date(provider.lastActivity).toLocaleString()}
+                    {provider.lastUsed 
+                      ? new Date(provider.lastUsed).toLocaleString()
+                      : 'Never'
+                    }
                   </p>
                 </div>
 
-                {/* Actions */}
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" size="sm" className="flex-1">
-                    <Settings className="h-4 w-4 mr-1" />
-                    Configure
-                  </Button>
-                  <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                      <Button variant="outline" size="sm">
-                        Reset Quota
-                      </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                      <AlertDialogHeader>
-                        <AlertDialogTitle>Reset Quota</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          Are you sure you want to reset the quota for {provider.name}? 
-                          This will set the used quota back to 0.
-                        </AlertDialogDescription>
-                      </AlertDialogHeader>
-                      <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction
-                          onClick={() => resetQuota(provider.id)}
-                        >
-                          Reset
-                        </AlertDialogAction>
-                      </AlertDialogFooter>
-                    </AlertDialogContent>
-                  </AlertDialog>
+                <div className="text-sm">
+                  <p className="text-muted-foreground">Created</p>
+                  <p className="font-medium">
+                    {new Date(provider.createdAt).toLocaleDateString()}
+                  </p>
                 </div>
+
+                {/* Provider-specific info */}
+                {provider.config?.endpoint && (
+                  <div className="text-sm">
+                    <p className="text-muted-foreground">Endpoint</p>
+                    <p className="font-mono text-xs truncate" title={provider.config.endpoint}>
+                      {provider.config.endpoint}
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
           );
         })}
       </div>
+
+      {/* Edit Provider Dialog */}
+      {editingProvider && (
+        <ProviderForm
+          key={editingProvider.id}
+          editingProvider={editingProvider}
+          onProviderCreated={loadProviders}
+          onProviderUpdated={() => {
+            loadProviders();
+            setEditingProvider(undefined);
+          }}
+        />
+      )}
 
       {providers.length === 0 && (
         <Card>
@@ -276,12 +416,13 @@ export default function Providers() {
             <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
             <h3 className="text-lg font-medium mb-2">No Providers Configured</h3>
             <p className="text-muted-foreground mb-4">
-              Add your first email service provider to start sending emails.
+              Add your first email service provider to start sending emails. You can configure popular services like SendGrid, Brevo, or create custom integrations.
             </p>
-            <Button>Add Provider</Button>
+            <ProviderForm onProviderCreated={loadProviders} />
           </CardContent>
         </Card>
       )}
     </div>
   );
 }
+

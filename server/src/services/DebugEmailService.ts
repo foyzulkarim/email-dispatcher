@@ -215,7 +215,7 @@ export class DebugEmailService {
 
         <div class="warning-note">
             <strong>⚠️ Development Mode:</strong> This email was not sent to any real recipients. 
-            It's saved locally for testing purposes because no email providers are configured.
+            It's saved locally for testing purposes${process.env.FORCE_DEBUG_MODE === 'true' ? ' because debug mode is forced via FORCE_DEBUG_MODE=true' : ' because no email providers are configured or available'}.
         </div>
 
         <div class="email-headers">
@@ -311,10 +311,16 @@ export class DebugEmailService {
   }
 
   /**
-   * Check if debug mode should be enabled (no active providers)
+   * Check if debug mode should be enabled (no active providers OR forced via env var)
    */
   async shouldUseDebugMode(): Promise<boolean> {
     try {
+      // Check if debug mode is forced via environment variable
+      if (process.env.FORCE_DEBUG_MODE === 'true') {
+        console.log('🔧 Debug mode forced via FORCE_DEBUG_MODE environment variable');
+        return true;
+      }
+
       // Import here to avoid circular dependency
       const { EmailProviderModel } = await import('../models/EmailProvider');
       

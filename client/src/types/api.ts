@@ -1,4 +1,3 @@
-
 export interface DashboardStats {
   totalJobs: number;
   totalEmails: number;
@@ -70,4 +69,98 @@ export interface ChartData {
   sent: number;
   failed: number;
   total: number;
+}
+
+// Dynamic Provider Types
+export interface DynamicProvider {
+  id: string;
+  name: string;
+  type: string;
+  isActive: boolean;
+  dailyQuota: number;
+  remainingToday: number;
+  totalSent: number;
+  successRate: number;
+  usedToday?: number; // API sometimes uses this instead of totalSent
+  lastUsed?: string;
+  createdAt: string;
+  updatedAt: string;
+  lastResetDate?: string; // API provides this field
+  config: ProviderConfig;
+}
+
+export interface ProviderConfig {
+  apiKey: string;
+  apiSecret?: string;
+  endpoint?: string;
+  method?: string;
+  headers?: Record<string, string>;
+  authentication?: {
+    type: 'api-key' | 'basic' | 'bearer';
+    headerName?: string;
+  };
+  payloadTemplate?: Record<string, any>;
+  fieldMappings?: Record<string, string>;
+}
+
+export interface ProviderPreset {
+  type: string;
+  name: string;
+  description: string;
+  defaultConfig: Partial<ProviderConfig>;
+  requiredFields: string[];
+  optionalFields: string[];
+}
+
+export interface SimpleProviderRequest {
+  name: string;
+  type: string;
+  apiKey: string;
+  apiSecret?: string;
+  dailyQuota: number;
+  isActive: boolean;
+}
+
+export interface AdvancedProviderRequest {
+  name: string;
+  type: string;
+  apiKey: string;
+  apiSecret?: string;
+  dailyQuota: number;
+  isActive: boolean;
+  endpoint: string;
+  method: string;
+  headers?: Record<string, string>;
+  authentication?: {
+    type: 'api-key' | 'basic' | 'bearer';
+    headerName?: string;
+  };
+  payloadTemplate?: Record<string, any>;
+  fieldMappings?: Record<string, string>;
+}
+
+export interface TestProviderRequest extends SimpleProviderRequest {
+  // Inherits from SimpleProviderRequest for testing
+}
+
+export interface TestProviderResponse {
+  isValid: boolean;
+  message: string;
+  generatedPayload?: Record<string, any>;
+  errors?: string[];
+}
+
+export interface BulkProviderRequest {
+  action: 'activate' | 'deactivate' | 'delete';
+  providerIds: string[];
+}
+
+export interface DynamicProviderListResponse {
+  data: DynamicProvider[];
+  total: number;
+}
+
+export interface DynamicProviderResponse {
+  data: DynamicProvider;
+  message: string;
 }

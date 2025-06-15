@@ -33,3 +33,8 @@ TEST_EMAIL=your-test-email@example.com
 # Server Configuration
 PORT=3000
 NODE_ENV=development 
+
+# Debug Mode Configuration
+# Set to 'true' to force debug mode (saves emails as HTML files instead of sending via providers)
+# This is useful during development to avoid consuming API credits
+FORCE_DEBUG_MODE=false 
