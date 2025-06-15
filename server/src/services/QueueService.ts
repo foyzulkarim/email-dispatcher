@@ -1,4 +1,4 @@
-import amqp from 'amqplib';
+import * as amqp from 'amqplib';
 
 class QueueService {
   private connection: any = null;
