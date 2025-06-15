@@ -1,0 +1,32 @@
+digraph INFRA {
+  node [ color = "black", fillcolor = "#E6E6E6", height =1, style = "filled,bold,rounded", fontname = "Arial" ];
+  "MongoDB Database" [ label = "MongoDB Database
+(MongoDB::Database)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "EmailJobModel" [ label = "EmailJobModel
+(MongoDB::Collection)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "EmailTargetModel" [ label = "EmailTargetModel
+(MongoDB::Collection)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "EmailProviderModel" [ label = "EmailProviderModel
+(MongoDB::Collection)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "SuppressionModel" [ label = "SuppressionModel
+(MongoDB::Collection)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "EmailTemplateModel" [ label = "EmailTemplateModel
+(MongoDB::Collection)", shape =cylinder, fillcolor = "#FFCFB3" ];
+  "DatabaseService" [ label = "DatabaseService
+(Custom::Service)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "FastifyServer" [ label = "FastifyServer
+(Custom::WebServer)", shape =rectangle, fillcolor = "#B7E0FF" ];
+  "TailwindCSS" [ label = "TailwindCSS
+(Custom::Styling)", shape =rectangle ];
+  "EmailJobModel" -> "MongoDB Database";
+  "EmailTargetModel" -> "MongoDB Database";
+  "EmailProviderModel" -> "MongoDB Database";
+  "SuppressionModel" -> "MongoDB Database";
+  "EmailTemplateModel" -> "MongoDB Database";
+  "DatabaseService" -> "EmailJobModel";
+  "DatabaseService" -> "EmailTargetModel";
+  "DatabaseService" -> "EmailProviderModel";
+  "DatabaseService" -> "SuppressionModel";
+  "DatabaseService" -> "EmailTemplateModel";
+  "FastifyServer" -> "DatabaseService";
+}
