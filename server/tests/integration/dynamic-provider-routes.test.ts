@@ -93,7 +93,7 @@ describe('Dynamic Provider Routes Integration Tests', () => {
 
       const result = JSON.parse(response.payload);
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Missing required fields');
+      expect(result.error).toBe('Missing required fields: type, apiKey, dailyQuota');
     });
 
     it('should validate daily quota is greater than 0', async () => {
@@ -117,7 +117,7 @@ describe('Dynamic Provider Routes Integration Tests', () => {
       expect(result.success).toBe(false);
       // Since 0 is falsy, it's caught in the required fields validation
       expect(result.error).toBe(
-        'Missing required fields: name, type, apiKey, dailyQuota'
+        'Missing required fields: dailyQuota'
       );
     });
 

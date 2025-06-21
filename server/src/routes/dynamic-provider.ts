@@ -16,15 +16,24 @@ export default async function dynamicProviderRoutes(fastify: FastifyInstance) {
         const payload = request.body;
 
         // Validate required fields for simple configuration
-        if (
-          !payload.name ||
-          !payload.type ||
-          !payload.apiKey ||
-          !payload.dailyQuota
-        ) {
+        const missingFields = [];
+        if (!payload.name) missingFields.push('name');
+        if (!payload.type) missingFields.push('type');
+        if (!payload.apiKey) missingFields.push('apiKey');
+        if (!payload.dailyQuota) missingFields.push('dailyQuota');
+
+        if (missingFields.length > 0) {
           return reply.code(400).send({
             success: false,
-            error: 'Missing required fields for simple configuration',
+            error: `Missing required fields: ${missingFields.join(', ')}`,
+          } as ApiResponse);
+        }
+
+        // Validate daily quota value
+        if (payload.dailyQuota <= 0) {
+          return reply.code(400).send({
+            success: false,
+            error: 'Daily quota must be greater than 0',
           } as ApiResponse);
         }
 
@@ -348,6 +357,24 @@ export default async function dynamicProviderRoutes(fastify: FastifyInstance) {
       } as ApiResponse);
     } catch (error) {
       fastify.log.error('Error in bulk operation:', error);
+      return reply.code(500).send({
+        success: false,
+        error: 'Internal server error',
+      } as ApiResponse);
+    }
+  });
+
+  // Get provider presets
+  fastify.get('/presets', async (request, reply) => {
+    try {
+      const presets = ProviderConfigurationService.getProviderPresets();
+
+      return reply.send({
+        success: true,
+        data: presets,
+      } as ApiResponse);
+    } catch (error) {
+      fastify.log.error('Error getting provider presets:', error);
       return reply.code(500).send({
         success: false,
         error: 'Internal server error',

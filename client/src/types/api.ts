@@ -99,7 +99,7 @@ export interface ProviderConfig {
     type: 'api-key' | 'basic' | 'bearer';
     headerName?: string;
   };
-  payloadTemplate?: Record<string, any>;
+  payloadTemplate?: Record<string, unknown>;
   fieldMappings?: Record<string, string>;
 }
 
@@ -135,18 +135,16 @@ export interface AdvancedProviderRequest {
     type: 'api-key' | 'basic' | 'bearer';
     headerName?: string;
   };
-  payloadTemplate?: Record<string, any>;
+  payloadTemplate?: Record<string, unknown>;
   fieldMappings?: Record<string, string>;
 }
 
-export interface TestProviderRequest extends SimpleProviderRequest {
-  // Inherits from SimpleProviderRequest for testing
-}
+export type TestProviderRequest = SimpleProviderRequest;
 
 export interface TestProviderResponse {
   isValid: boolean;
   message: string;
-  generatedPayload?: Record<string, any>;
+  generatedPayload?: Record<string, unknown>;
   errors?: string[];
 }
 
