@@ -1,0 +1,60 @@
+services:
+
+  # Backend server
+  server:
+    build:
+      context: ./server
+      target: dev
+    container_name: email-dispatcher-server-dev
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      # Connect to MongoDB running on host machine
+      MONGODB_URI: mongodb://host.docker.internal:27017/email-dispatcher-db
+      # Connect to RabbitMQ running on host machine
+      RABBITMQ_URL: amqp://guest:guest@host.docker.internal:5672
+      DEFAULT_FROM_EMAIL: noreply@yourdomain.com
+      DEFAULT_FROM_NAME: Your Company Name
+      TEST_EMAIL: your-test-email@example.com
+      FORCE_DEBUG_MODE: true
+    ports:
+      - "3001:3001"
+    volumes:
+      - ./server:/app
+      - /app/node_modules
+      - ./server/mail-debug:/app/mail-debug
+    develop:
+      watch:
+        - action: sync
+          path: ./server/src
+          target: /app/src
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ./server/package.json
+
+  # Frontend client
+  client:
+    build:
+      context: ./client
+      target: dev
+    container_name: email-dispatcher-client-dev
+    restart: unless-stopped
+    environment:
+      NODE_ENV: development
+      VITE_API_URL: http://192.168.4.106:3001
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    develop:
+      watch:
+        - action: sync
+          path: ./client/src
+          target: /app/src
+          ignore:
+            - node_modules/
+        - action: rebuild
+          path: ./client/package.json

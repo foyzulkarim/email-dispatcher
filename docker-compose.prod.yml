@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # Backend server
+  server:
+    build:
+      context: ./server
+      target: production
+    container_name: email-dispatcher-server-prod
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      MONGODB_URI: ${MONGODB_URI}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      # Email provider settings
+      BREVO_API_KEY: ${BREVO_API_KEY}
+      BREVO_DAILY_QUOTA: ${BREVO_DAILY_QUOTA:-300}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      SENDGRID_DAILY_QUOTA: ${SENDGRID_DAILY_QUOTA:-100}
+      MAILJET_API_KEY: ${MAILJET_API_KEY}
+      MAILJET_DAILY_QUOTA: ${MAILJET_DAILY_QUOTA:-200}
+      MAILERLITE_API_KEY: ${MAILERLITE_API_KEY}
+      MAILERLITE_DAILY_QUOTA: ${MAILERLITE_DAILY_QUOTA:-1000}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+      DEFAULT_FROM_NAME: ${DEFAULT_FROM_NAME}
+      TEST_EMAIL: ${TEST_EMAIL}
+      FORCE_DEBUG_MODE: ${FORCE_DEBUG_MODE:-false}
+    volumes:
+      - mail_debug_data:/app/mail-debug
+    networks:
+      - email-dispatcher-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # Frontend client
+  client:
+    build:
+      context: ./client
+      target: production
+    container_name: email-dispatcher-client-prod
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    depends_on:
+      - server
+    networks:
+      - email-dispatcher-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 64M
+
+
+
+volumes:
+  mail_debug_data:
+
+networks:
+  email-dispatcher-network:
+    driver: bridge 

@@ -19,8 +19,7 @@ jest.mock('../../src/services/DatabaseService', () => ({
 }));
 
 jest.mock('../../src/services/ProviderService', () => ({
-  providerService: {
-    initializeProviders: jest.fn().mockResolvedValue({}),
+  providerService: {    
     startQuotaResetScheduler: jest.fn().mockResolvedValue({}),
   },
 }));
