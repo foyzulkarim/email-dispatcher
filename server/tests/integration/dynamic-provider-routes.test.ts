@@ -4,39 +4,32 @@ import { build } from '../fixtures/app';
 // Mock the ProviderConfigurationService
 jest.mock('../../src/services/ProviderConfigurationService', () => ({
   ProviderConfigurationService: {
-    saveSimpleProvider: jest.fn().mockResolvedValue({
-      id: 'provider-123',
-      name: 'Test Provider',
-      type: 'brevo',
-      dailyQuota: 1000,
-      isActive: true
-    }),
     saveAdvancedProvider: jest.fn().mockResolvedValue({
       id: 'advanced-provider-123',
       name: 'Test Advanced Provider',
       type: 'custom',
       dailyQuota: 2000,
-      isActive: true
+      isActive: true,
     }),
     getProviderPresets: jest.fn().mockReturnValue([
       { name: 'brevo', type: 'brevo' },
-      { name: 'sendgrid', type: 'sendgrid' }
+      { name: 'sendgrid', type: 'sendgrid' },
     ]),
     testProviderConfiguration: jest.fn().mockResolvedValue({
       success: true,
-      message: 'Test successful'
+      message: 'Test successful',
     }),
     updateProvider: jest.fn().mockResolvedValue({
       id: 'provider-123',
-      name: 'Updated Provider'
+      name: 'Updated Provider',
     }),
     deleteProvider: jest.fn().mockResolvedValue({
       success: true,
-      message: 'Provider deleted'
+      message: 'Provider deleted',
     }),
     getProvider: jest.fn().mockRejectedValue(new Error('Provider not found')),
-    listProviders: jest.fn().mockResolvedValue([])
-  }
+    listProviders: jest.fn().mockResolvedValue([]),
+  },
 }));
 
 describe('Dynamic Provider Routes Integration Tests', () => {
@@ -56,26 +49,28 @@ describe('Dynamic Provider Routes Integration Tests', () => {
       type: 'brevo' as const,
       apiKey: 'test-api-key-123',
       dailyQuota: 1000,
-      isActive: true
+      isActive: true,
     };
 
     it('should create simple provider configuration successfully', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/dynamic-provider/simple',
-        payload: validSimpleProviderData
+        payload: validSimpleProviderData,
       });
 
       // Should process the request (success or error with proper structure)
       expect([201, 400, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
       expect(typeof result.success).toBe('boolean');
-      
+
       if (result.success) {
         expect(result.data).toBeDefined();
-        expect(result.message).toBe('Simple provider configuration created successfully');
+        expect(result.message).toBe(
+          'Simple provider configuration created successfully'
+        );
       } else {
         // If mocked service fails, that's also acceptable for testing the API structure
         expect(result.error).toBeDefined();
@@ -84,21 +79,21 @@ describe('Dynamic Provider Routes Integration Tests', () => {
 
     it('should validate required fields for simple provider', async () => {
       const invalidData = {
-        name: 'Test Provider'
+        name: 'Test Provider',
         // Missing required fields
       };
 
       const response = await app.inject({
         method: 'POST',
         url: '/api/dynamic-provider/simple',
-        payload: invalidData
+        payload: invalidData,
       });
 
       expect(response.statusCode).toBe(400);
-      
+
       const result = JSON.parse(response.payload);
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Missing required fields');
+      expect(result.error).toBe('Missing required fields: type, apiKey, dailyQuota');
     });
 
     it('should validate daily quota is greater than 0', async () => {
@@ -106,41 +101,43 @@ describe('Dynamic Provider Routes Integration Tests', () => {
         name: 'Test Provider',
         type: 'brevo',
         apiKey: 'test-key',
-        dailyQuota: 0,  // Invalid quota - this gets caught as "missing required field" because 0 is falsy
-        isActive: true
+        dailyQuota: 0, // Invalid quota - this gets caught as "missing required field" because 0 is falsy
+        isActive: true,
       };
 
       const response = await app.inject({
         method: 'POST',
         url: '/api/dynamic-provider/simple',
-        payload: invalidData
+        payload: invalidData,
       });
 
       expect(response.statusCode).toBe(400);
-      
+
       const result = JSON.parse(response.payload);
       expect(result.success).toBe(false);
       // Since 0 is falsy, it's caught in the required fields validation
-      expect(result.error).toBe('Missing required fields: name, type, apiKey, dailyQuota');
+      expect(result.error).toBe(
+        'Missing required fields: dailyQuota'
+      );
     });
 
     it('should validate negative daily quota', async () => {
       const invalidData = {
         name: 'Test Provider',
-        type: 'brevo', 
+        type: 'brevo',
         apiKey: 'test-key',
-        dailyQuota: -100,  // Negative quota - passes required field check but fails value check
-        isActive: true
+        dailyQuota: -100, // Negative quota - passes required field check but fails value check
+        isActive: true,
       };
 
       const response = await app.inject({
         method: 'POST',
         url: '/api/dynamic-provider/simple',
-        payload: invalidData
+        payload: invalidData,
       });
 
       expect(response.statusCode).toBe(400);
-      
+
       const result = JSON.parse(response.payload);
       expect(result.success).toBe(false);
       // Negative values pass the required field check but fail the value validation
@@ -148,8 +145,16 @@ describe('Dynamic Provider Routes Integration Tests', () => {
     });
 
     it('should handle different provider types', async () => {
-      const providerTypes = ['brevo', 'sendgrid', 'mailgun', 'postmark', 'mailjet', 'ses', 'custom'];
-      
+      const providerTypes = [
+        'brevo',
+        'sendgrid',
+        'mailgun',
+        'postmark',
+        'mailjet',
+        'ses',
+        'custom',
+      ];
+
       for (const type of providerTypes) {
         const response = await app.inject({
           method: 'POST',
@@ -157,13 +162,13 @@ describe('Dynamic Provider Routes Integration Tests', () => {
           payload: {
             ...validSimpleProviderData,
             name: `Test ${type} Provider`,
-            type: type as any
-          }
+            type: type as any,
+          },
         });
 
         // Should accept all valid provider types
         expect([201, 400, 500]).toContain(response.statusCode);
-        
+
         const result = JSON.parse(response.payload);
         expect(result).toHaveProperty('success');
       }
@@ -181,41 +186,43 @@ describe('Dynamic Provider Routes Integration Tests', () => {
       method: 'POST' as const,
       headers: {
         'Content-Type': 'application/json',
-        'X-API-Key': '{{apiKey}}'
+        'X-API-Key': '{{apiKey}}',
       },
       authentication: {
         type: 'api-key' as const,
         headerName: 'X-API-Key',
-        prefix: 'Bearer'
+        prefix: 'Bearer',
       },
       payloadTemplate: {
         to: '{{recipients}}',
         subject: '{{subject}}',
-        html: '{{htmlContent}}'
+        html: '{{htmlContent}}',
       },
       fieldMappings: {
         sender: 'from',
         recipients: 'to',
         subject: 'subject',
-        htmlContent: 'html'
-      }
+        htmlContent: 'html',
+      },
     };
 
     it('should create advanced provider configuration successfully', async () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/dynamic-provider/advanced',
-        payload: validAdvancedProviderData
+        payload: validAdvancedProviderData,
       });
 
       expect([201, 400, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
-      
+
       if (result.success) {
         expect(result.data).toBeDefined();
-        expect(result.message).toBe('Advanced provider configuration created successfully');
+        expect(result.message).toBe(
+          'Advanced provider configuration created successfully'
+        );
       } else {
         // If mocked service fails, that's also acceptable for testing the API structure
         expect(result.error).toBeDefined();
@@ -225,38 +232,40 @@ describe('Dynamic Provider Routes Integration Tests', () => {
     it('should validate required fields for advanced provider', async () => {
       const invalidData = {
         name: 'Test Provider',
-        type: 'custom'
+        type: 'custom',
         // Missing required advanced fields
       };
 
       const response = await app.inject({
         method: 'POST',
         url: '/api/dynamic-provider/advanced',
-        payload: invalidData
+        payload: invalidData,
       });
 
       expect(response.statusCode).toBe(400);
-      
+
       const result = JSON.parse(response.payload);
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Missing required fields for advanced configuration');
+      expect(result.error).toContain(
+        'Missing required fields for advanced configuration'
+      );
     });
 
     it('should handle different HTTP methods', async () => {
       const methods = ['POST', 'PUT', 'PATCH'];
-      
+
       for (const method of methods) {
         const response = await app.inject({
           method: 'POST',
           url: '/api/dynamic-provider/advanced',
           payload: {
             ...validAdvancedProviderData,
-            method: method as any
-          }
+            method: method as any,
+          },
         });
 
         expect([201, 400, 500]).toContain(response.statusCode);
-        
+
         const result = JSON.parse(response.payload);
         expect(result).toHaveProperty('success');
       }
@@ -264,7 +273,7 @@ describe('Dynamic Provider Routes Integration Tests', () => {
 
     it('should handle different authentication types', async () => {
       const authTypes = ['api-key', 'bearer', 'basic', 'custom'];
-      
+
       for (const authType of authTypes) {
         const response = await app.inject({
           method: 'POST',
@@ -273,13 +282,13 @@ describe('Dynamic Provider Routes Integration Tests', () => {
             ...validAdvancedProviderData,
             authentication: {
               ...validAdvancedProviderData.authentication,
-              type: authType as any
-            }
-          }
+              type: authType as any,
+            },
+          },
         });
 
         expect([201, 400, 500]).toContain(response.statusCode);
-        
+
         const result = JSON.parse(response.payload);
         expect(result).toHaveProperty('success');
       }
@@ -290,17 +299,19 @@ describe('Dynamic Provider Routes Integration Tests', () => {
     it('should return available provider presets', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/dynamic-provider/presets'
+        url: '/api/dynamic-provider/presets',
       });
 
       expect([200, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
-      
+
       if (result.success) {
         expect(result.data).toBeDefined();
-        expect(Array.isArray(result.data) || typeof result.data === 'object').toBe(true);
+        expect(
+          Array.isArray(result.data) || typeof result.data === 'object'
+        ).toBe(true);
       } else {
         // If mocked service fails, that's also acceptable for testing the API structure
         expect(result.error).toBeDefined();
@@ -317,15 +328,15 @@ describe('Dynamic Provider Routes Integration Tests', () => {
           name: 'Test Provider',
           type: 'brevo',
           apiKey: 'test-key',
-          dailyQuota: 1000
-        }
+          dailyQuota: 1000,
+        },
       });
 
       expect([200, 400, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
-      
+
       if (result.success) {
         expect(result.data).toBeDefined();
       } else {
@@ -347,12 +358,12 @@ describe('Dynamic Provider Routes Integration Tests', () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           authentication: { type: 'api-key' },
-          payloadTemplate: { to: '{{recipients}}' }
-        }
+          payloadTemplate: { to: '{{recipients}}' },
+        },
       });
 
       expect([200, 400, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
     });
@@ -364,14 +375,14 @@ describe('Dynamic Provider Routes Integration Tests', () => {
     it('should get provider by ID', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: `/api/dynamic-provider/${providerId}`
+        url: `/api/dynamic-provider/${providerId}`,
       });
 
       expect([200, 404, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
-      
+
       if (response.statusCode === 404) {
         expect(result.success).toBe(false);
         expect(result.error).toContain('Provider not found');
@@ -382,20 +393,20 @@ describe('Dynamic Provider Routes Integration Tests', () => {
       const updateData = {
         name: 'Updated Provider Name',
         dailyQuota: 2000,
-        isActive: false
+        isActive: false,
       };
 
       const response = await app.inject({
         method: 'PUT',
         url: `/api/dynamic-provider/${providerId}`,
-        payload: updateData
+        payload: updateData,
       });
 
       expect([200, 404, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
-      
+
       if (result.success) {
         expect(result.message).toBe('Provider updated successfully');
       }
@@ -404,14 +415,14 @@ describe('Dynamic Provider Routes Integration Tests', () => {
     it('should delete provider', async () => {
       const response = await app.inject({
         method: 'DELETE',
-        url: `/api/dynamic-provider/${providerId}`
+        url: `/api/dynamic-provider/${providerId}`,
       });
 
       expect([200, 404, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
-      
+
       if (result.success) {
         expect(result.message).toBe('Provider deleted successfully');
       }
@@ -422,18 +433,18 @@ describe('Dynamic Provider Routes Integration Tests', () => {
     it('should list all providers without filters', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/dynamic-provider'
+        url: '/api/dynamic-provider',
       });
 
       expect([200, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
-      
+
       if (result.success) {
         expect(result.data).toBeDefined();
         expect(Array.isArray(result.data)).toBe(true);
-        
+
         // Check that sensitive data is filtered out
         if (result.data.length > 0) {
           const provider = result.data[0];
@@ -449,11 +460,11 @@ describe('Dynamic Provider Routes Integration Tests', () => {
     it('should filter providers by type', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/dynamic-provider?type=brevo'
+        url: '/api/dynamic-provider?type=brevo',
       });
 
       expect([200, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
     });
@@ -461,11 +472,11 @@ describe('Dynamic Provider Routes Integration Tests', () => {
     it('should filter providers by active status', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/dynamic-provider?isActive=true'
+        url: '/api/dynamic-provider?isActive=true',
       });
 
       expect([200, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
     });
@@ -473,11 +484,11 @@ describe('Dynamic Provider Routes Integration Tests', () => {
     it('should filter providers with quota remaining', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/dynamic-provider?hasQuotaRemaining=true'
+        url: '/api/dynamic-provider?hasQuotaRemaining=true',
       });
 
       expect([200, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
     });
@@ -485,11 +496,11 @@ describe('Dynamic Provider Routes Integration Tests', () => {
     it('should handle multiple filters', async () => {
       const response = await app.inject({
         method: 'GET',
-        url: '/api/dynamic-provider?type=sendgrid&isActive=true&hasQuotaRemaining=true'
+        url: '/api/dynamic-provider?type=sendgrid&isActive=true&hasQuotaRemaining=true',
       });
 
       expect([200, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
     });
@@ -504,20 +515,20 @@ describe('Dynamic Provider Routes Integration Tests', () => {
         url: '/api/dynamic-provider/bulk',
         payload: {
           action: 'activate',
-          providerIds: bulkProviderIds
-        }
+          providerIds: bulkProviderIds,
+        },
       });
 
       expect([200, 400, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
-      
+
       if (result.success) {
         expect(result.data).toBeDefined();
         expect(Array.isArray(result.data)).toBe(true);
         expect(result.message).toContain('Bulk activate operation completed');
-        
+
         // Check result structure
         if (result.data.length > 0) {
           const operationResult = result.data[0];
@@ -533,15 +544,15 @@ describe('Dynamic Provider Routes Integration Tests', () => {
         url: '/api/dynamic-provider/bulk',
         payload: {
           action: 'deactivate',
-          providerIds: bulkProviderIds
-        }
+          providerIds: bulkProviderIds,
+        },
       });
 
       expect([200, 400, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
-      
+
       if (result.success) {
         expect(result.message).toContain('Bulk deactivate operation completed');
       }
@@ -553,17 +564,19 @@ describe('Dynamic Provider Routes Integration Tests', () => {
         url: '/api/dynamic-provider/bulk',
         payload: {
           action: 'reset-quota',
-          providerIds: bulkProviderIds
-        }
+          providerIds: bulkProviderIds,
+        },
       });
 
       expect([200, 400, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
-      
+
       if (result.success) {
-        expect(result.message).toContain('Bulk reset-quota operation completed');
+        expect(result.message).toContain(
+          'Bulk reset-quota operation completed'
+        );
       }
     });
 
@@ -572,16 +585,18 @@ describe('Dynamic Provider Routes Integration Tests', () => {
         method: 'POST',
         url: '/api/dynamic-provider/bulk',
         payload: {
-          action: 'activate'
+          action: 'activate',
           // Missing providerIds
-        }
+        },
       });
 
       expect(response.statusCode).toBe(400);
-      
+
       const result = JSON.parse(response.payload);
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Missing required fields: action, providerIds');
+      expect(result.error).toContain(
+        'Missing required fields: action, providerIds'
+      );
     });
 
     it('should validate providerIds is an array', async () => {
@@ -590,15 +605,17 @@ describe('Dynamic Provider Routes Integration Tests', () => {
         url: '/api/dynamic-provider/bulk',
         payload: {
           action: 'activate',
-          providerIds: 'not-an-array'
-        }
+          providerIds: 'not-an-array',
+        },
       });
 
       expect(response.statusCode).toBe(400);
-      
+
       const result = JSON.parse(response.payload);
       expect(result.success).toBe(false);
-      expect(result.error).toContain('Missing required fields: action, providerIds');
+      expect(result.error).toContain(
+        'Missing required fields: action, providerIds'
+      );
     });
 
     it('should handle empty providerIds array', async () => {
@@ -607,12 +624,12 @@ describe('Dynamic Provider Routes Integration Tests', () => {
         url: '/api/dynamic-provider/bulk',
         payload: {
           action: 'activate',
-          providerIds: []
-        }
+          providerIds: [],
+        },
       });
 
       expect([200, 400]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
     });
@@ -625,8 +642,8 @@ describe('Dynamic Provider Routes Integration Tests', () => {
         url: '/api/dynamic-provider/simple',
         payload: 'invalid-json',
         headers: {
-          'content-type': 'application/json'
-        }
+          'content-type': 'application/json',
+        },
       });
 
       expect(response.statusCode).toBe(400);
@@ -636,11 +653,11 @@ describe('Dynamic Provider Routes Integration Tests', () => {
       const response = await app.inject({
         method: 'POST',
         url: '/api/dynamic-provider/simple',
-        payload: {}
+        payload: {},
       });
 
       expect(response.statusCode).toBe(400);
-      
+
       const result = JSON.parse(response.payload);
       expect(result.success).toBe(false);
     });
@@ -653,15 +670,15 @@ describe('Dynamic Provider Routes Integration Tests', () => {
           name: 'Test Provider',
           type: 'invalid-type',
           apiKey: 'test-key',
-          dailyQuota: 1000
-        }
+          dailyQuota: 1000,
+        },
       });
 
       // Should either accept or reject with proper error
       expect([201, 400, 500]).toContain(response.statusCode);
-      
+
       const result = JSON.parse(response.payload);
       expect(result).toHaveProperty('success');
     });
   });
-}); 
+});

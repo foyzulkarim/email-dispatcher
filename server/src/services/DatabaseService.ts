@@ -43,8 +43,8 @@ export class DatabaseService {
       // Suppression list indexes
       await SuppressionModel.collection.createIndex({ email: 1 }, { unique: true });
       
-      // Email templates indexes
-      await EmailTemplateModel.collection.createIndex({ name: 1, isActive: 1 });
+      // Email templates indexes are now handled in the schema definition
+      // Only create category index here if needed for performance
       await EmailTemplateModel.collection.createIndex({ category: 1, isActive: 1 });
       await EmailTemplateModel.collection.createIndex({ isActive: 1, createdAt: -1 });
       

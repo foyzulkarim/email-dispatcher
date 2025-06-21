@@ -104,10 +104,6 @@ class ApiService {
     return this.request<DynamicProviderResponse>(`/dynamic-provider/${id}`);
   }
 
-  async getProviderPresets(): Promise<{data: ProviderPreset[]}> {
-    return this.request<{data: ProviderPreset[]}>('/dynamic-provider/presets');
-  }
-
   async createSimpleProvider(data: SimpleProviderRequest): Promise<DynamicProviderResponse> {
     return this.request<DynamicProviderResponse>('/dynamic-provider/simple', {
       method: 'POST',

@@ -1,0 +1,191 @@
+version: '3.8'
+
+services:
+  # Backend server
+  server:
+    image: ghcr.io/${GITHUB_REPOSITORY}-server:latest
+    container_name: email-dispatcher-server
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      MONGODB_URI: ${MONGODB_URI}
+      RABBITMQ_URL: ${RABBITMQ_URL}
+      # Email provider settings
+      BREVO_API_KEY: ${BREVO_API_KEY}
+      BREVO_DAILY_QUOTA: ${BREVO_DAILY_QUOTA:-300}
+      SENDGRID_API_KEY: ${SENDGRID_API_KEY}
+      SENDGRID_DAILY_QUOTA: ${SENDGRID_DAILY_QUOTA:-100}
+      MAILJET_API_KEY: ${MAILJET_API_KEY}
+      MAILJET_DAILY_QUOTA: ${MAILJET_DAILY_QUOTA:-200}
+      MAILERLITE_API_KEY: ${MAILERLITE_API_KEY}
+      MAILERLITE_DAILY_QUOTA: ${MAILERLITE_DAILY_QUOTA:-1000}
+      DEFAULT_FROM_EMAIL: ${DEFAULT_FROM_EMAIL}
+      DEFAULT_FROM_NAME: ${DEFAULT_FROM_NAME}
+      TEST_EMAIL: ${TEST_EMAIL}
+      FORCE_DEBUG_MODE: ${FORCE_DEBUG_MODE:-false}
+    volumes:
+      - mail_debug_data:/app/mail-debug
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - email-dispatcher-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Frontend client with reverse proxy
+  client:
+    image: ghcr.io/${GITHUB_REPOSITORY}-client:latest
+    container_name: email-dispatcher-client
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - server
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      # SSL certificates (if using HTTPS)
+      - ./ssl:/etc/nginx/ssl:ro
+    networks:
+      - email-dispatcher-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: '0.25'
+        reservations:
+          memory: 128M
+          cpus: '0.1'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "5m"
+        max-file: "3"
+
+  # Optional: Self-hosted MongoDB
+  mongodb:
+    image: mongo:7-jammy
+    container_name: email-dispatcher-mongodb
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_ROOT_PASSWORD}
+      MONGO_INITDB_DATABASE: email_service
+    ports:
+      - "127.0.0.1:27017:27017"  # Only bind to localhost
+    volumes:
+      - mongodb_data:/data/db
+      - ./mongo-init.js:/docker-entrypoint-initdb.d/mongo-init.js:ro
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - email-dispatcher-network
+    command: ["mongod", "--auth", "--bind_ip_all"]
+    profiles:
+      - with-db
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+          cpus: '1.0'
+        reservations:
+          memory: 1G
+          cpus: '0.5'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "20m"
+        max-file: "5"
+
+  # Optional: Self-hosted RabbitMQ
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: email-dispatcher-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+      RABBITMQ_VM_MEMORY_HIGH_WATERMARK: 0.6
+    ports:
+      - "127.0.0.1:5672:5672"    # Only bind to localhost
+      - "127.0.0.1:15672:15672"  # Management UI - localhost only
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - /etc/localtime:/etc/localtime:ro
+    networks:
+      - email-dispatcher-network
+    healthcheck:
+      test: rabbitmq-diagnostics -q ping
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    profiles:
+      - with-queue
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: '0.5'
+        reservations:
+          memory: 512M
+          cpus: '0.25'
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # Log aggregation (optional)
+  log-aggregator:
+    image: fluent/fluent-bit:latest
+    container_name: email-dispatcher-logs
+    restart: unless-stopped
+    volumes:
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - ./fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+    networks:
+      - email-dispatcher-network
+    profiles:
+      - with-logging
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: '0.1'
+
+volumes:
+  mail_debug_data:
+    driver: local
+  mongodb_data:
+    driver: local
+  rabbitmq_data:
+    driver: local
+
+networks:
+  email-dispatcher-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16 

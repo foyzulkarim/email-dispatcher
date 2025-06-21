@@ -39,9 +39,6 @@ async function start() {
     // Initialize database (indexes, demo data if needed)
     await databaseService.initializeDatabase();
 
-    // Initialize providers
-    await providerService.initializeProviders();
-
     // Start quota reset scheduler
     await providerService.startQuotaResetScheduler();
 

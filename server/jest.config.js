@@ -6,6 +6,10 @@ module.exports = {
     '**/__tests__/**/*.test.ts',
     '**/?(*.)+(spec|test).ts'
   ],
+  // Exclude integration tests from default test runs
+  testPathIgnorePatterns: [
+    '/node_modules/',
+  ],
   transform: {
     '^.+\\.ts$': 'ts-jest'
   },
@@ -17,16 +21,5 @@ module.exports = {
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
-  testTimeout: 10000,
-  // Environment variables for testing
-  testEnvironment: 'node',
-  transform: {
-    '^.+\\.ts$': ['ts-jest', {
-      tsconfig: 'tsconfig.json',
-      isolatedModules: true,
-      diagnostics: {
-        warnOnly: true
-      }
-    }]
-  }
+  testTimeout: 10000
 }; 

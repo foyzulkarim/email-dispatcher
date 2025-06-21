@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -35,11 +35,7 @@ export default function Providers() {
   const [editingProvider, setEditingProvider] = useState<DynamicProvider | undefined>();
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadProviders();
-  }, []);
-
-  const loadProviders = async () => {
+  const loadProviders = useCallback(async () => {
     try {
       setIsLoading(true);
       const response = await apiService.getDynamicProviders();
@@ -71,7 +67,11 @@ export default function Providers() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    loadProviders();
+  }, [loadProviders]);
 
   const toggleProvider = async (id: string, isActive: boolean) => {
     try {

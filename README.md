@@ -1,148 +1,351 @@
-# Email Dispatch Service: A Multi-Provider Email Management System
+# Email Dispatcher - Full Stack Application
 
-A robust and scalable email dispatch service that intelligently manages multiple email providers, handles high-volume email sending, and provides comprehensive monitoring capabilities. The system automatically rotates between providers, handles failures gracefully, and offers detailed analytics and monitoring.
+A comprehensive email dispatch service with intelligent provider switching, queue management, and monitoring capabilities.
 
-This project combines a modern React-based frontend with a powerful Node.js/Fastify backend to create a complete email management solution. It supports multiple email service providers (Brevo, SendGrid, Mailjet, etc.), manages quotas, provides real-time monitoring, and includes a template system for standardized communications.
+## 🏗️ Architecture
 
-## Repository Structure
-```
-.
-├── client/                      # Frontend React application
-│   ├── src/
-│   │   ├── components/         # Reusable UI components including shadcn/ui library
-│   │   ├── pages/             # Main application pages (Dashboard, JobMonitor, etc.)
-│   │   ├── services/          # API service layer for backend communication
-│   │   └── types/             # TypeScript type definitions
-│   └── public/                # Static assets
-└── server/                     # Backend Fastify application
-    ├── src/
-    │   ├── models/            # MongoDB data models
-    │   ├── routes/            # API route handlers
-    │   ├── services/          # Core business logic services
-    │   └── types/             # TypeScript interfaces
-    └── docs/                  # System documentation and guides
-```
+- **Frontend**: React + TypeScript + Vite + Tailwind CSS + shadcn/ui
+- **Backend**: Node.js + TypeScript + Fastify + MongoDB + RabbitMQ
+- **Infrastructure**: Docker + Docker Compose + Nginx
+- **CI/CD**: GitHub Actions with automated testing and deployment
 
-## Usage Instructions
-### Prerequisites
-- Node.js v16 or higher
-- MongoDB v4.4 or higher
-- RabbitMQ v3.8 or higher
-- Email provider API keys (Brevo, SendGrid, Mailjet, etc.)
+## 🚀 Quick Start
 
-### Installation
+### Development Environment
 
-1. Clone the repository:
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/your-username/email-dispatcher.git
+   cd email-dispatcher
+   ```
+
+2. **Setup environment variables**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your actual configuration
+   ```
+
+3. **Start with Docker Compose**
+   ```bash
+   # Start all services in development mode
+   docker compose -f docker-compose.dev.yml up -d
+   
+   # View logs
+   docker compose -f docker-compose.dev.yml logs -f
+   ```
+
+4. **Access the application**
+   - Frontend: http://localhost:8080
+   - Backend API: http://localhost:3001
+   - RabbitMQ Management: http://localhost:15672 (admin/password123)
+   - MongoDB: localhost:27017
+
+### Production Deployment
+
+#### Option 1: Self-hosted VPS
+
+1. **Setup VPS** (Ubuntu 20.04+ recommended)
+   ```bash
+   # Download and run setup script
+   wget https://raw.githubusercontent.com/your-username/email-dispatcher/main/deploy/setup-vps.sh
+   chmod +x setup-vps.sh
+   sudo DOMAIN=yourdomain.com ./setup-vps.sh
+   ```
+
+2. **Configure environment**
+   ```bash
+   cd /opt/email-dispatcher
+   sudo nano .env
+   # Add your actual configuration
+   ```
+
+3. **Deploy**
+   ```bash
+   sudo -u emaildispatcher ./deploy.sh
+   ```
+
+#### Option 2: Using External Services
+
+For production with external MongoDB and RabbitMQ:
+
 ```bash
-git clone <repository-url>
-cd email-dispatch-service
+# Copy environment template
+cp .env.example .env
+
+# Edit with your external service URLs
+MONGODB_URI=mongodb://user:pass@your-mongodb-cluster/email_service
+RABBITMQ_URL=amqp://user:pass@your-rabbitmq-instance
+
+# Deploy without self-hosted services
+docker compose -f docker-compose.prod.yml up -d
 ```
 
-2. Install server dependencies:
+#### Option 3: With Self-hosted Database
+
+```bash
+# Deploy with MongoDB and RabbitMQ included
+docker compose -f docker-compose.prod.yml --profile with-db --profile with-queue up -d
+```
+
+## 🛠️ Development
+
+### Local Development without Docker
+
+#### Backend Setup
 ```bash
 cd server
 npm install
 cp environment-template.txt .env
-# Configure your .env file with necessary credentials
-```
 
-3. Install client dependencies:
-```bash
-cd ../client
-npm install
-```
+# Start MongoDB and RabbitMQ (via Docker)
+docker run -d --name mongodb -p 27017:27017 -e MONGO_INITDB_ROOT_USERNAME=admin -e MONGO_INITDB_ROOT_PASSWORD=password123 mongo:7-jammy
+docker run -d --name rabbitmq -p 5672:5672 -p 15672:15672 -e RABBITMQ_DEFAULT_USER=admin -e RABBITMQ_DEFAULT_PASS=password123 rabbitmq:3-management-alpine
 
-### Quick Start
-1. Start the server:
-```bash
-cd server
+# Start development server
 npm run dev
 ```
 
-2. Start the client:
+#### Frontend Setup
 ```bash
 cd client
+npm install
 npm run dev
 ```
 
-3. Access the dashboard at `http://localhost:8080`
+### Testing
 
-### More Detailed Examples
-
-1. Setting up an email provider:
-```typescript
-const provider = {
-  name: 'Brevo Test',
-  type: 'brevo',
-  apiKey: 'your-api-key',
-  dailyQuota: 100
-};
-
-await axios.post('http://localhost:3000/providers/create', provider);
+#### Backend Tests
+```bash
+cd server
+npm test                    # Run all tests
+npm run test:unit          # Unit tests only
+npm run test:integration   # Integration tests only
+npm run test:coverage      # With coverage report
 ```
 
-2. Sending an email:
-```typescript
-const emailJob = {
-  subject: 'Test Email',
-  body: '<h1>Hello World</h1>',
-  recipients: ['test@example.com'],
-  metadata: { campaign: 'test' }
-};
-
-await axios.post('http://localhost:3000/emails/send', emailJob);
+#### Frontend Tests
+```bash
+cd client
+npm run lint               # ESLint
+npm run build              # Production build test
 ```
 
-### Troubleshooting
+## 📋 Docker Commands Reference
 
-1. Provider Connection Issues
-- Problem: Email provider not connecting
-- Solution: 
-  ```bash
-  # Check provider status
-  curl http://localhost:3000/providers/status/{providerId}
-  # Verify API key in .env file
-  ```
+### Development
+```bash
+# Start development environment
+docker compose -f docker-compose.dev.yml up -d
 
-2. Email Job Failures
-- Enable debug mode in .env:
-  ```
-  DEBUG_MODE=true
-  DEBUG_EMAIL_DIR=./debug-emails
-  ```
-- Check debug logs in `./debug-emails` directory
+# View logs
+docker compose -f docker-compose.dev.yml logs -f [service]
 
-## Data Flow
-The system processes emails through multiple stages, from submission to delivery.
+# Rebuild services
+docker compose -f docker-compose.dev.yml up -d --build
 
-```ascii
-[Client] -> [API Server] -> [Queue Service] -> [Email Worker]
-                                                    |
-                              [Provider N] <----- [Provider Service]
-                              [Provider 2] <-----|
-                              [Provider 1] <-----|
+# Stop services
+docker compose -f docker-compose.dev.yml down
 ```
 
-Key interactions:
-- Client submits email jobs through the API
-- Jobs are queued in RabbitMQ for processing
-- Email Worker processes jobs and selects appropriate providers
-- Provider Service manages provider rotation and quota tracking
-- Failed deliveries are automatically retried with different providers
-- Webhook events update email status in real-time
+### Production
+```bash
+# Deploy production
+docker compose -f docker-compose.prod.yml up -d
 
-## Infrastructure
+# Update deployment
+docker compose -f docker-compose.prod.yml pull
+docker compose -f docker-compose.prod.yml up -d --remove-orphans
 
-![Infrastructure diagram](./docs/infra.svg)
-The system uses the following key resources:
+# View production logs
+docker compose -f docker-compose.prod.yml logs -f
 
-MongoDB Collections:
-- `emailJobs`: Stores email job metadata and status
-- `emailTargets`: Tracks individual email recipients
-- `emailProviders`: Manages provider configurations
-- `suppressions`: Maintains suppression list
+# Scale services
+docker compose -f docker-compose.prod.yml up -d --scale server=2
+```
 
-RabbitMQ Queues:
-- `email-jobs`: Main job processing queue
-- `retry-jobs`: Queue for failed job retries
-- `webhook-events`: Queue for processing provider webhooks
+### Useful Commands
+```bash
+# Execute commands in containers
+docker compose exec server npm run build
+docker compose exec client npm run lint
+
+# Database operations
+docker compose exec mongodb mongosh -u admin -p password123
+docker compose exec server npm run db:migrate
+
+# Cleanup
+docker compose down -v  # Remove volumes
+docker system prune -a  # Clean up Docker
+```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+#### Required
+- `MONGODB_URI`: MongoDB connection string
+- `RABBITMQ_URL`: RabbitMQ connection URL
+- `DEFAULT_FROM_EMAIL`: Verified sender email
+- `DEFAULT_FROM_NAME`: Sender name
+
+#### Email Providers (at least one required)
+- `BREVO_API_KEY`: Brevo API key
+- `SENDGRID_API_KEY`: SendGrid API key
+- `MAILJET_API_KEY`: Mailjet public:private key
+
+#### Optional
+- `FORCE_DEBUG_MODE`: Save emails as files instead of sending
+- `TEST_EMAIL`: Test recipient email
+
+### Docker Compose Profiles
+
+- `with-db`: Include self-hosted MongoDB
+- `with-queue`: Include self-hosted RabbitMQ
+- `with-logging`: Include log aggregation
+
+Example:
+```bash
+docker compose -f docker-compose.prod.yml --profile with-db --profile with-queue up -d
+```
+
+## 🚀 CI/CD Pipeline
+
+The project includes a comprehensive GitHub Actions pipeline:
+
+### Features
+- ✅ Automated testing (unit + integration)
+- 🔍 Security scanning with Trivy
+- 🐳 Docker image building and pushing
+- 🚀 Automated deployment to VPS
+- 📊 Test coverage reporting
+
+### Setup GitHub Secrets
+
+For deployment, configure these secrets in your GitHub repository:
+
+```
+VPS_HOST=your-server-ip
+VPS_USERNAME=your-ssh-username
+VPS_SSH_KEY=your-private-ssh-key
+VPS_PORT=22
+
+# Optional: for staging environment
+STAGING_VPS_HOST=your-staging-server-ip
+```
+
+### Workflow Triggers
+- **Push to `main`**: Deploy to production
+- **Push to `develop`**: Deploy to staging
+- **Pull requests**: Run tests and security scans
+
+## 📊 Monitoring & Logging
+
+### Health Checks
+- Frontend: `http://localhost/`
+- Backend: `http://localhost:3001/health`
+
+### Log Locations
+- Application logs: `docker compose logs -f`
+- Health check logs: `/opt/email-dispatcher/logs/health-check.log`
+- Nginx logs: `/var/log/nginx/`
+
+### Monitoring Commands
+```bash
+# Container status
+docker compose ps
+
+# Resource usage
+docker stats
+
+# Application metrics
+curl http://localhost:3001/api/dashboard/stats
+```
+
+## 🔒 Security
+
+### Features
+- Non-root container users
+- Security headers in Nginx
+- Firewall configuration (UFW)
+- Fail2ban protection
+- SSL/TLS with Let's Encrypt
+- Vulnerability scanning in CI/CD
+
+### Best Practices
+- Regular security updates
+- Strong passwords for services
+- Network isolation with Docker networks
+- Regular backups
+- Log monitoring
+
+## 🔄 Backup & Recovery
+
+### Database Backup
+```bash
+# Create backup
+docker compose exec mongodb mongodump --out /backup --authenticationDatabase admin -u admin -p password123
+
+# Restore backup
+docker compose exec mongodb mongorestore /backup --authenticationDatabase admin -u admin -p password123
+```
+
+### Application Data
+```bash
+# Backup volumes
+docker run --rm -v email-dispatcher_mongodb_data:/source -v $(pwd):/backup alpine tar czf /backup/mongodb-backup.tar.gz -C /source .
+
+# Restore volumes
+docker run --rm -v email-dispatcher_mongodb_data:/target -v $(pwd):/backup alpine tar xzf /backup/mongodb-backup.tar.gz -C /target
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Run the test suite
+6. Submit a pull request
+
+## 📄 License
+
+This project is licensed under the ISC License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Troubleshooting
+
+### Common Issues
+
+1. **Port conflicts**
+   ```bash
+   # Check what's using ports
+   sudo netstat -tulpn | grep :8080
+   sudo netstat -tulpn | grep :3001
+   ```
+
+2. **Docker permission issues**
+   ```bash
+   sudo chmod 666 /var/run/docker.sock
+   # Or add user to docker group
+   sudo usermod -aG docker $USER
+   ```
+
+3. **Memory issues**
+   ```bash
+   # Check Docker memory usage
+   docker stats
+   # Increase Docker memory limits
+   ```
+
+4. **Database connection issues**
+   ```bash
+   # Check MongoDB logs
+   docker compose logs mongodb
+   # Test connection
+   docker compose exec server npm run db:test
+   ```
+
+### Getting Help
+
+- Check the [Issues](https://github.com/your-username/email-dispatcher/issues) page
+- Review application logs: `docker compose logs -f`
+- Check the documentation in the `docs/` directory

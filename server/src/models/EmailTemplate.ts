@@ -58,11 +58,10 @@ const emailTemplateSchema = new Schema<EmailTemplateDocument>({
 });
 
 // Indexes for better query performance
-emailTemplateSchema.index({ name: 1, isActive: 1 });
 emailTemplateSchema.index({ category: 1, isActive: 1 });
 emailTemplateSchema.index({ createdAt: -1 });
 
-// Ensure unique name within active templates
+// Ensure unique name within active templates (combines name and isActive index)
 emailTemplateSchema.index({ name: 1, isActive: 1 }, { 
   unique: true, 
   partialFilterExpression: { isActive: true } 

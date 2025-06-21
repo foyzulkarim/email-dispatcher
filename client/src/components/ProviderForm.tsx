@@ -23,7 +23,6 @@ interface ProviderFormProps {
 
 export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpdated }: ProviderFormProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [presets, setPresets] = useState<ProviderPreset[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestProviderResponse | null>(null);
@@ -50,19 +49,28 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
     isActive: true,
     endpoint: '',
     method: 'POST',
-    headers: {},
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json'
+    },
     authentication: {
       type: 'api-key',
       headerName: 'X-API-Key',
     },
-    payloadTemplate: {},
-    fieldMappings: {},
+    payloadTemplate: {
+      from: '{{sender.email}}',
+      to: '{{recipients.0.email}}',
+      subject: '{{subject}}',
+      html: '{{htmlContent}}',
+      text: '{{textContent}}'
+    },
+    fieldMappings: {
+      sender: 'sender',
+      recipients: 'recipients',
+      subject: 'subject',
+      htmlContent: 'htmlContent'
+    },
   });
-
-  // Load presets on component mount
-  useEffect(() => {
-    loadPresets();
-  }, []);
 
   // Populate form when editing
   useEffect(() => {
@@ -96,20 +104,6 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
       setConfigMode(provider.config.endpoint ? 'advanced' : 'simple');
     }
   }, [editingProvider]);
-
-  const loadPresets = async () => {
-    try {
-      const response = await apiService.getProviderPresets();
-      setPresets(response.data);
-    } catch (error) {
-      console.error('Failed to load presets:', error);
-      toast({
-        title: "Error",
-        description: "Failed to load provider presets",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handlePresetSelect = (presetType: string) => {
     const preset = presets.find(p => p.type === presetType);
@@ -209,10 +203,24 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
         isActive: true,
         endpoint: '',
         method: 'POST',
-        headers: {},
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
         authentication: { type: 'api-key', headerName: 'X-API-Key' },
-        payloadTemplate: {},
-        fieldMappings: {},
+        payloadTemplate: {
+          from: '{{sender.email}}',
+          to: '{{recipients.0.email}}',
+          subject: '{{subject}}',
+          html: '{{htmlContent}}',
+          text: '{{textContent}}'
+        },
+        fieldMappings: {
+          sender: 'sender',
+          recipients: 'recipients',
+          subject: 'subject',
+          htmlContent: 'htmlContent'
+        },
       });
       setTestResult(null);
       setIsOpen(false);
@@ -427,7 +435,11 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
                   // Invalid JSON, don't update
                 }
               }}
-              placeholder={JSON.stringify({ 'Content-Type': 'application/json', 'Accept': 'application/json' }, null, 2)}
+              placeholder={JSON.stringify({ 
+                'Content-Type': 'application/json', 
+                'Accept': 'application/json',
+                'Authorization': 'Bearer {{apiKey}}'
+              }, null, 2)}
               rows={4}
             />
           </div>
@@ -506,6 +518,80 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
                 text: '{{textContent}}'
               }, null, 2)}
               rows={8}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Field Mappings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">Field Mappings</CardTitle>
+          <CardDescription>Map internal field names to your API's expected field names</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="mapping-sender">Sender Field</Label>
+              <Input
+                id="mapping-sender"
+                value={advancedForm.fieldMappings?.sender || 'sender'}
+                onChange={(e) => setAdvancedForm(prev => ({ 
+                  ...prev, 
+                  fieldMappings: { ...prev.fieldMappings!, sender: e.target.value } 
+                }))}
+                placeholder="sender"
+              />
+            </div>
+            <div>
+              <Label htmlFor="mapping-recipients">Recipients Field</Label>
+              <Input
+                id="mapping-recipients"
+                value={advancedForm.fieldMappings?.recipients || 'recipients'}
+                onChange={(e) => setAdvancedForm(prev => ({ 
+                  ...prev, 
+                  fieldMappings: { ...prev.fieldMappings!, recipients: e.target.value } 
+                }))}
+                placeholder="recipients"
+              />
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="mapping-subject">Subject Field</Label>
+              <Input
+                id="mapping-subject"
+                value={advancedForm.fieldMappings?.subject || 'subject'}
+                onChange={(e) => setAdvancedForm(prev => ({ 
+                  ...prev, 
+                  fieldMappings: { ...prev.fieldMappings!, subject: e.target.value } 
+                }))}
+                placeholder="subject"
+              />
+            </div>
+            <div>
+              <Label htmlFor="mapping-html">HTML Content Field</Label>
+              <Input
+                id="mapping-html"
+                value={advancedForm.fieldMappings?.htmlContent || 'htmlContent'}
+                onChange={(e) => setAdvancedForm(prev => ({ 
+                  ...prev, 
+                  fieldMappings: { ...prev.fieldMappings!, htmlContent: e.target.value } 
+                }))}
+                placeholder="htmlContent"
+              />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="mapping-text">Text Content Field (Optional)</Label>
+            <Input
+              id="mapping-text"
+              value={advancedForm.fieldMappings?.textContent || ''}
+              onChange={(e) => setAdvancedForm(prev => ({ 
+                ...prev, 
+                fieldMappings: { ...prev.fieldMappings!, textContent: e.target.value } 
+              }))}
+              placeholder="textContent"
             />
           </div>
         </CardContent>
