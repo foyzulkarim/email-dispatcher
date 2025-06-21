@@ -101,15 +101,15 @@ install: ## Install dependencies for both client and server
 
 setup: ## Initial project setup
 	@echo "Setting up environment..."
-	cp app.env.example .env
-	@echo "App environment file created. Please edit .env with your configuration."
+	cp server/environment-template.txt server/.env
+	@echo "Server environment file created. Please edit server/.env with your configuration."
 	@echo "Setting up infrastructure environment..."
 	cd infra && cp env.infra.example .env
 	@echo "Infrastructure environment file created."
 	@echo "Installing dependencies..."
 	$(MAKE) install
 	@echo "Setup complete!"
-	@echo "1. Edit .env with your application configuration"
+	@echo "1. Edit server/.env with your application configuration"
 	@echo "2. Edit infra/.env with your infrastructure configuration"
 	@echo "3. Run 'make dev-full' to start with local infrastructure"
 	@echo "   OR 'make dev' if using external services"
