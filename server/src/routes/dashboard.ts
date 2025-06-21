@@ -7,6 +7,7 @@ import { PlatformModel } from '../models/Platform';
 import { SuppressionModel } from '../models/Suppression';
 import { WebhookEventModel } from '../models/WebhookEvent';
 import { userProviderService } from '../services/UserProviderService';
+import { userService } from '../services/UserService';
 
 export default async function dashboardRoutes(fastify: FastifyInstance) {
   
@@ -19,7 +20,8 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
         recentJobs,
         providerStats,
         suppressionCount,
-        recentEvents
+        recentEvents,
+        userStats
       ] = await Promise.all([
         EmailJobModel.countDocuments(),
         EmailTargetModel.countDocuments(),
@@ -32,7 +34,8 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
         WebhookEventModel.find()
           .sort({ timestamp: -1 })
           .limit(10)
-          .select('eventType email timestamp providerId')
+          .select('eventType email timestamp providerId'),
+        userService.getUserStats()
       ]);
 
       // Calculate target statistics
