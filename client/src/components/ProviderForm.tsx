@@ -23,7 +23,6 @@ interface ProviderFormProps {
 
 export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpdated }: ProviderFormProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [presets, setPresets] = useState<ProviderPreset[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestProviderResponse | null>(null);
@@ -73,11 +72,6 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
     },
   });
 
-  // Load presets on component mount
-  useEffect(() => {
-    loadPresets();
-  }, []);
-
   // Populate form when editing
   useEffect(() => {
     if (editingProvider) {
@@ -110,22 +104,6 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
       setConfigMode(provider.config.endpoint ? 'advanced' : 'simple');
     }
   }, [editingProvider]);
-
-  const loadPresets = async () => {
-    try {
-      console.log('Loading provider presets...');
-      // TODO: Replace with actual logic to load presets when API is available
-      // const response = await apiService.getProviderPresets();
-      // setPresets(response.data);
-    } catch (error) {
-      console.error('Failed to load provider presets:', error);
-      toast({
-        title: "Error Loading Presets",
-        description: "Unable to load provider presets. Please try again later.",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handlePresetSelect = (presetType: string) => {
     const preset = presets.find(p => p.type === presetType);
