@@ -1,5 +1,5 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { EmailTemplate } from '../types';
+import type { EmailTemplate } from '../types';
 
 interface EmailTemplateDocument extends Omit<EmailTemplate, 'id'>, Document {
   id: string;
@@ -10,6 +10,11 @@ const emailTemplateSchema = new Schema<EmailTemplateDocument>({
     type: String,
     required: true,
     unique: true,
+    index: true
+  },
+  userId: {
+    type: String,
+    required: true,
     index: true
   },
   name: {
@@ -58,13 +63,14 @@ const emailTemplateSchema = new Schema<EmailTemplateDocument>({
 });
 
 // Indexes for better query performance
-emailTemplateSchema.index({ category: 1, isActive: 1 });
+emailTemplateSchema.index({ userId: 1, isActive: 1 });
+emailTemplateSchema.index({ userId: 1, category: 1, isActive: 1 });
 emailTemplateSchema.index({ createdAt: -1 });
 
-// Ensure unique name within active templates (combines name and isActive index)
-emailTemplateSchema.index({ name: 1, isActive: 1 }, { 
+// Ensure unique name per user within active templates
+emailTemplateSchema.index({ userId: 1, name: 1, isActive: 1 }, { 
   unique: true, 
   partialFilterExpression: { isActive: true } 
 });
 
-export const EmailTemplateModel = mongoose.model<EmailTemplateDocument>('EmailTemplate', emailTemplateSchema); 
+export const EmailTemplateModel = mongoose.model<EmailTemplateDocument>('EmailTemplate', emailTemplateSchema);

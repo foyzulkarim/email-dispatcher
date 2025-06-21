@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { EmailTarget } from '../types';
+import type { EmailTarget } from '../types';
+import { EmailTargetStatus } from '../types/enums';
 
 interface EmailTargetDocument extends Omit<EmailTarget, 'id' | 'createdAt' | 'updatedAt'>, Document {
   id: string;
@@ -28,8 +29,8 @@ const emailTargetSchema = new Schema<EmailTargetDocument>({
   },
   status: {
     type: String,
-    enum: ['pending', 'sent', 'failed', 'blocked'],
-    default: 'pending',
+    enum: Object.values(EmailTargetStatus),
+    default: EmailTargetStatus.PENDING,
     index: true
   },
   providerId: {

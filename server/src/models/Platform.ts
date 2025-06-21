@@ -1,64 +1,61 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { EmailProvider, EmailProviderConfig } from '../types';
+import type { Platform } from '../types';
+import { PlatformType, AuthType, HttpMethod, getAllPlatformTypes } from '../types/enums';
 
-export interface EmailProviderDocument extends Omit<EmailProvider, 'id'>, Document {
+interface PlatformDocument extends Omit<Platform, 'id'>, Document {
   id: string;
-  apiSecret?: string; // For providers like Mailjet that need public/private keys
-  config: EmailProviderConfig;
 }
 
-const emailProviderSchema = new Schema<EmailProviderDocument>({
+const platformSchema = new Schema<PlatformDocument>({
   id: {
     type: String,
     required: true,
-    unique: true
+    unique: true,
+    index: true
   },
   name: {
     type: String,
     required: true,
+    unique: true,
     trim: true
   },
   type: {
     type: String,
-    enum: ['brevo', 'mailerlite', 'sendgrid', 'mailgun', 'postmark', 'mailjet', 'ses', 'custom'],
+    enum: getAllPlatformTypes(),
     required: true
   },
-  apiKey: {
+  displayName: {
     type: String,
-    required: true
-  },
-  apiSecret: {
-    type: String,
-    required: false // Only needed for some providers like Mailjet
-  },
-  dailyQuota: {
-    type: Number,
     required: true,
-    min: 0
+    trim: true
   },
-  usedToday: {
-    type: Number,
-    default: 0,
-    min: 0
+  description: {
+    type: String,
+    trim: true
+  },
+  documentationUrl: {
+    type: String,
+    trim: true
   },
   isActive: {
     type: Boolean,
     default: true,
     index: true
   },
-  lastResetDate: {
-    type: Date,
-    default: Date.now
+  authType: {
+    type: String,
+    enum: Object.values(AuthType),
+    required: true
   },
-  config: {
+  defaultConfig: {
     endpoint: {
       type: String,
       required: true
     },
     method: {
       type: String,
-      enum: ['POST', 'PUT', 'PATCH'],
-      default: 'POST'
+      enum: Object.values(HttpMethod),
+      default: HttpMethod.POST
     },
     headers: {
       type: Schema.Types.Mixed,
@@ -96,11 +93,10 @@ const emailProviderSchema = new Schema<EmailProviderDocument>({
   }
 }, {
   timestamps: true,
-  collection: 'email_providers'
+  collection: 'platforms'
 });
 
-// Index for finding active providers with available quota
-emailProviderSchema.index({ isActive: 1, usedToday: 1, dailyQuota: 1 });
+// Index for active platforms
+platformSchema.index({ isActive: 1, type: 1 });
 
-export const EmailProviderModel = mongoose.model<EmailProviderDocument>('EmailProvider', emailProviderSchema);
-
+export const PlatformModel = mongoose.model<PlatformDocument>('Platform', platformSchema);

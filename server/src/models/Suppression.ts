@@ -1,7 +1,10 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { SuppressionEntry } from '../types';
+import type { SuppressionEntry } from '../types';
+import { SuppressionReason } from '../types/enums';
 
-interface SuppressionDocument extends SuppressionEntry, Document {}
+interface SuppressionDocument extends Omit<SuppressionEntry, 'id'>, Document {
+  id: string;
+}
 
 const suppressionSchema = new Schema<SuppressionDocument>({
   email: {
@@ -13,7 +16,7 @@ const suppressionSchema = new Schema<SuppressionDocument>({
   },
   reason: {
     type: String,
-    enum: ['bounce', 'complaint', 'manual'],
+    enum: Object.values(SuppressionReason),
     required: true,
     index: true
   },

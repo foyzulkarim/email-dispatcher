@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { EmailJob } from '../types';
+import type { EmailJob } from '../types';
+import { EmailJobStatus } from '../types/enums';
 
 interface EmailJobDocument extends Omit<EmailJob, 'id'>, Document {
   id: string;
@@ -10,6 +11,11 @@ const emailJobSchema = new Schema<EmailJobDocument>({
     type: String,
     required: true,
     unique: true,
+    index: true
+  },
+  userId: {
+    type: String,
+    required: true,
     index: true
   },
   subject: {
@@ -29,8 +35,8 @@ const emailJobSchema = new Schema<EmailJobDocument>({
   }],
   status: {
     type: String,
-    enum: ['pending', 'processing', 'completed', 'failed'],
-    default: 'pending',
+    enum: Object.values(EmailJobStatus),
+    default: EmailJobStatus.PENDING,
     index: true
   },
   metadata: {
@@ -45,6 +51,11 @@ const emailJobSchema = new Schema<EmailJobDocument>({
   templateVariables: {
     type: Schema.Types.Mixed,
     default: {}
+  },
+  // Provider selection
+  userProviderId: {
+    type: String,
+    index: true
   }
 }, {
   timestamps: true,
@@ -52,9 +63,10 @@ const emailJobSchema = new Schema<EmailJobDocument>({
 });
 
 // Indexes for better query performance
-emailJobSchema.index({ createdAt: -1 });
-emailJobSchema.index({ status: 1, createdAt: -1 });
+emailJobSchema.index({ userId: 1, createdAt: -1 });
+emailJobSchema.index({ userId: 1, status: 1, createdAt: -1 });
 emailJobSchema.index({ templateId: 1, createdAt: -1 });
+emailJobSchema.index({ userProviderId: 1, createdAt: -1 });
 
 export const EmailJobModel = mongoose.model<EmailJobDocument>('EmailJob', emailJobSchema);
 

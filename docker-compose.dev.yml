@@ -11,7 +11,7 @@ services:
       NODE_ENV: development
       PORT: 3001
       # Connect to MongoDB running on host machine
-      MONGODB_URI: mongodb://host.docker.internal:27017/email-dispatcher-db
+      MONGODB_URI: mongodb://host.docker.internal:27017/email-dispatcher
       # Connect to RabbitMQ running on host machine
       RABBITMQ_URL: amqp://guest:guest@host.docker.internal:5672
       DEFAULT_FROM_EMAIL: noreply@yourdomain.com

@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document } from 'mongoose';
-import { WebhookEvent } from '../types';
+import type { WebhookEvent } from '../types';
+import { WebhookEventType } from '../types/enums';
 
 interface WebhookEventDocument extends Omit<WebhookEvent, 'id'>, Document {
   id: string;
@@ -19,7 +20,7 @@ const webhookEventSchema = new Schema<WebhookEventDocument>({
   },
   eventType: {
     type: String,
-    enum: ['delivered', 'bounced', 'opened', 'clicked', 'complained'],
+    enum: Object.values(WebhookEventType),
     required: true,
     index: true
   },

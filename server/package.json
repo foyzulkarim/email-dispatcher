@@ -11,7 +11,10 @@
     "test:watch": "NODE_ENV=test jest --watch",
     "test:coverage": "NODE_ENV=test jest --coverage",
     "test:unit": "NODE_ENV=test jest tests/unit",
-    "test:integration": "NODE_ENV=test jest tests/integration"
+    "test:integration": "NODE_ENV=test jest tests/integration",
+    "seed": "ts-node src/scripts/seed.ts",
+    "seed:minimal": "ts-node src/scripts/seed.ts minimal",
+    "seed:full": "ts-node src/scripts/seed.ts full"
   },
   "keywords": [
     "email",

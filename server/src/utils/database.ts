@@ -2,8 +2,10 @@ import mongoose from 'mongoose';
 
 export async function connectToDatabase(): Promise<void> {
   try {
-    const mongoUri = process.env.MONGODB_URI || 'mongodb://localhost:27017/email-dispatch';
-    
+    const mongoUri = process.env.MONGODB_URI;
+    if (!mongoUri) {
+      throw new Error('MONGODB_URI is not set');
+    }
     await mongoose.connect(mongoUri);
     
     console.log('✅ Connected to MongoDB');
