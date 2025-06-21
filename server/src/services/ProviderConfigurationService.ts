@@ -176,6 +176,195 @@ export class ProviderConfigurationService {
     return await EmailProviderModel.find(query).select('-apiKey -apiSecret');
   }
 
+  /**
+   * Get provider presets/templates for different email providers
+   */
+  static getProviderPresets() {
+    return {
+      brevo: {
+        name: 'Brevo (Sendinblue)',
+        type: 'brevo',
+        description: this.getProviderDescription('brevo'),
+        endpoint: 'https://api.brevo.com/v3/smtp/email',
+        method: 'POST',
+        authentication: {
+          type: 'header',
+          headerName: 'api-key',
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        payloadTemplate: {
+          sender: '{{{sender}}}',
+          to: '{{{recipients}}}',
+          subject: '{{{subject}}}',
+          htmlContent: '{{{htmlContent}}}',
+        },
+        fieldMappings: {
+          sender: 'sender',
+          recipients: 'to',
+          subject: 'subject',
+          htmlContent: 'htmlContent',
+        },
+      },
+      sendgrid: {
+        name: 'SendGrid',
+        type: 'sendgrid',
+        description: this.getProviderDescription('sendgrid'),
+        endpoint: 'https://api.sendgrid.com/v3/mail/send',
+        method: 'POST',
+        authentication: {
+          type: 'header',
+          headerName: 'Authorization',
+          headerPrefix: 'Bearer ',
+        },
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        payloadTemplate: {
+          personalizations: [
+            {
+              to: '{{{recipients}}}',
+              subject: '{{{subject}}}',
+            },
+          ],
+          from: '{{{sender}}}',
+          content: [
+            {
+              type: 'text/html',
+              value: '{{{htmlContent}}}',
+            },
+          ],
+        },
+        fieldMappings: {
+          sender: 'from',
+          recipients: 'personalizations[0].to',
+          subject: 'personalizations[0].subject',
+          htmlContent: 'content[0].value',
+        },
+      },
+      mailjet: {
+        name: 'Mailjet',
+        type: 'mailjet',
+        description: this.getProviderDescription('mailjet'),
+        endpoint: 'https://api.mailjet.com/v3.1/send',
+        method: 'POST',
+        authentication: {
+          type: 'basic',
+        },
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        payloadTemplate: {
+          Messages: [
+            {
+              From: '{{{sender}}}',
+              To: '{{{recipients}}}',
+              Subject: '{{{subject}}}',
+              HTMLPart: '{{{htmlContent}}}',
+            },
+          ],
+        },
+        fieldMappings: {
+          sender: 'Messages[0].From',
+          recipients: 'Messages[0].To',
+          subject: 'Messages[0].Subject',
+          htmlContent: 'Messages[0].HTMLPart',
+        },
+      },
+      mailgun: {
+        name: 'Mailgun',
+        type: 'mailgun',
+        description: this.getProviderDescription('mailgun'),
+        endpoint: 'https://api.mailgun.net/v3/{domain}/messages',
+        method: 'POST',
+        authentication: {
+          type: 'basic',
+          username: 'api',
+        },
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        payloadTemplate: {
+          from: '{{{sender}}}',
+          to: '{{{recipients}}}',
+          subject: '{{{subject}}}',
+          html: '{{{htmlContent}}}',
+        },
+        fieldMappings: {
+          sender: 'from',
+          recipients: 'to',
+          subject: 'subject',
+          htmlContent: 'html',
+        },
+      },
+      postmark: {
+        name: 'Postmark',
+        type: 'postmark',
+        description: this.getProviderDescription('postmark'),
+        endpoint: 'https://api.postmarkapp.com/email',
+        method: 'POST',
+        authentication: {
+          type: 'header',
+          headerName: 'X-Postmark-Server-Token',
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        payloadTemplate: {
+          From: '{{{sender}}}',
+          To: '{{{recipients}}}',
+          Subject: '{{{subject}}}',
+          HtmlBody: '{{{htmlContent}}}',
+        },
+        fieldMappings: {
+          sender: 'From',
+          recipients: 'To',
+          subject: 'Subject',
+          htmlContent: 'HtmlBody',
+        },
+      },
+      ses: {
+        name: 'Amazon SES',
+        type: 'ses',
+        description: this.getProviderDescription('ses'),
+        endpoint: 'https://email.{region}.amazonaws.com/',
+        method: 'POST',
+        authentication: {
+          type: 'aws4',
+        },
+        headers: {
+          'Content-Type': 'application/x-amz-json-1.0',
+          'X-Amz-Target': 'SimpleEmailService.SendEmail',
+        },
+        payloadTemplate: {
+          Source: '{{{sender}}}',
+          Destination: {
+            ToAddresses: '{{{recipients}}}',
+          },
+          Message: {
+            Subject: {
+              Data: '{{{subject}}}',
+            },
+            Body: {
+              Html: {
+                Data: '{{{htmlContent}}}',
+              },
+            },
+          },
+        },
+        fieldMappings: {
+          sender: 'Source',
+          recipients: 'Destination.ToAddresses',
+          subject: 'Message.Subject.Data',
+          htmlContent: 'Message.Body.Html.Data',
+        },
+      },
+    };
+  }
+
   private static buildAdvancedProvider(payload: AdvancedProviderConfigPayload) {
     return {
       id: 'temp-test',

@@ -27,6 +27,8 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestProviderResponse | null>(null);
   const [configMode, setConfigMode] = useState<'simple' | 'advanced'>('simple');
+  const [presets, setPresets] = useState<ProviderPreset[]>([]);
+  const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const { toast } = useToast();
 
   // Form state for simple configuration
@@ -71,6 +73,44 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
       htmlContent: 'htmlContent'
     },
   });
+
+  // Load provider presets
+  useEffect(() => {
+    const loadPresets = async () => {
+      setIsLoadingPresets(true);
+      try {
+        const response = await apiService.getProviderPresets();
+        if (response.success) {
+          // Convert the object to array format expected by the component
+          const presetsArray = Object.values(response.data).map(preset => ({
+            type: preset.type,
+            name: preset.name,
+            description: preset.description,
+            defaultConfig: {
+              endpoint: preset.endpoint,
+              method: preset.method,
+              headers: preset.headers,
+              authentication: preset.authentication,
+              payloadTemplate: preset.payloadTemplate,
+              fieldMappings: preset.fieldMappings,
+            }
+          }));
+          setPresets(presetsArray);
+        }
+      } catch (error) {
+        console.error('Failed to load provider presets:', error);
+        toast({
+          title: "Failed to load presets",
+          description: "Could not load provider presets",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoadingPresets(false);
+      }
+    };
+
+    loadPresets();
+  }, [toast]);
 
   // Populate form when editing
   useEffect(() => {

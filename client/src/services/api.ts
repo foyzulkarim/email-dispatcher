@@ -144,6 +144,11 @@ class ApiService {
       body: JSON.stringify(data),
     });
   }
+
+  // Get provider presets
+  async getProviderPresets(): Promise<{success: boolean, data: Record<string, ProviderPreset>}> {
+    return this.request<{success: boolean, data: Record<string, ProviderPreset>}>('/dynamic-provider/presets');
+  }
 }
 
 export const apiService = new ApiService();
