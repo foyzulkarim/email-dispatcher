@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import { EmailJobModel } from '../models/EmailJob';
 import { EmailTargetModel } from '../models/EmailTarget';
-import { EmailProviderModel } from '../models/EmailProvider';
 import { SuppressionModel } from '../models/Suppression';
 import { EmailTemplateModel } from '../models/EmailTemplate';
 import { v4 as uuidv4 } from 'uuid';
@@ -36,9 +35,6 @@ export class DatabaseService {
       await EmailTargetModel.collection.createIndex({ jobId: 1 });
       await EmailTargetModel.collection.createIndex({ status: 1, retryCount: 1 });
       await EmailTargetModel.collection.createIndex({ email: 1 });
-      
-      // Email providers indexes
-      await EmailProviderModel.collection.createIndex({ isActive: 1, usedToday: 1 });
       
       // Suppression list indexes
       await SuppressionModel.collection.createIndex({ email: 1 }, { unique: true });
@@ -361,20 +357,18 @@ export class DatabaseService {
 
   async getStats(): Promise<any> {
     try {
-      const [jobCount, targetCount, suppressionCount, templateCount, providerCount] = await Promise.all([
+      const [jobCount, targetCount, suppressionCount, templateCount] = await Promise.all([
         EmailJobModel.countDocuments(),
         EmailTargetModel.countDocuments(),
         SuppressionModel.countDocuments(),
-        EmailTemplateModel.countDocuments(),
-        EmailProviderModel.countDocuments()
+        EmailTemplateModel.countDocuments()
       ]);
 
       return {
         jobs: jobCount,
         targets: targetCount,
         suppressions: suppressionCount,
-        templates: templateCount,
-        providers: providerCount
+        templates: templateCount
       };
       
     } catch (error) {

@@ -1,7 +1,6 @@
-import { EmailProviderModel } from '../models/EmailProvider';
 import { EmailTargetModel } from '../models/EmailTarget';
 import { EmailJobModel } from '../models/EmailJob';
-import { emailProviderService } from './EmailProviderService';
+import { EmailJobStatus } from '../types/enums';
 
 export class EmailWorkerService {
   private isRunning = false;
@@ -76,90 +75,10 @@ export class EmailWorkerService {
   }
 
   private async processEmailTarget(target: any) {
-    // Find available provider
-    const provider = await this.findAvailableProvider();
-    
-    if (!provider) {
-      console.log('No available providers, retrying later');
-      await EmailTargetModel.updateOne(
-        { id: target.id },
-        { status: 'pending' }
-      );
-      return;
-    }
-
-    // Simulate sending email (in real implementation, this would call the actual provider API)
-    const success = await this.sendEmailViaProvider(provider, target);
-
-    if (success) {
-      // Mark as sent and update provider usage
-      await Promise.all([
-        EmailTargetModel.updateOne(
-          { id: target.id },
-          { 
-            status: 'sent',
-            providerId: provider.id,
-            sentAt: new Date()
-          }
-        ),
-        EmailProviderModel.updateOne(
-          { id: provider.id },
-          { $inc: { usedToday: 1 } }
-        )
-      ]);
-
-      console.log(`✅ Email sent to ${target.email} via ${provider.name}`);
-    } else {
-      await this.handleTargetFailure(target, new Error('Provider send failed'));
-    }
-  }
-
-  private async findAvailableProvider() {
-    const providers = await EmailProviderModel.find({
-      isActive: true,
-      $expr: { $lt: ['$usedToday', '$dailyQuota'] }
-    }).sort({ usedToday: 1 });
-
-    return providers[0] || null;
-  }
-
-  private async sendEmailViaProvider(provider: any, target: any): Promise<boolean> {
-    try {
-      // Get the job details to extract subject and body
-      const job = await EmailJobModel.findOne({ id: target.jobId });
-      
-      if (!job) {
-        console.error(`Job not found for target ${target.id}`);
-        return false;
-      }
-
-      // Prepare email request
-      const emailRequest = {
-        to: target.email,
-        toName: target.email.split('@')[0], // Use part before @ as default name
-        subject: job.subject,
-        htmlContent: job.body,
-        textContent: job.body.replace(/<[^>]*>/g, ''), // Strip HTML for text version
-        fromEmail: process.env.DEFAULT_FROM_EMAIL || 'noreply@example.com',
-        fromName: process.env.DEFAULT_FROM_NAME || 'Email Service',
-        metadata: job.metadata || {}
-      };
-
-      // Send email using the real provider service
-      const response = await emailProviderService.sendEmail(provider, emailRequest);
-      
-      if (response.success) {
-        console.log(`✅ Email sent successfully to ${target.email} via ${provider.name}: ${response.messageId}`);
-        return true;
-      } else {
-        console.error(`❌ Email failed to ${target.email} via ${provider.name}: ${response.error}`);
-        return false;
-      }
-      
-    } catch (error) {
-      console.error(`❌ Error sending email to ${target.email} via ${provider.name}:`, error);
-      return false;
-    }
+    // TODO: Implement actual email sending via UserProvider system
+    // For now, we'll just mark as failed since the provider system is being refactored
+    console.log(`⚠️ Email sending not implemented yet for ${target.email} - marking as failed`);
+    await this.handleTargetFailure(target, new Error('Email sending not yet implemented'));
   }
 
   private async handleTargetFailure(target: any, error: Error) {
@@ -208,13 +127,13 @@ export class EmailWorkerService {
       if (pendingTargets === 0) {
         // All targets processed
         if (sentTargets > 0) {
-          newStatus = 'completed';
+          newStatus = EmailJobStatus.COMPLETED;
         } else {
-          newStatus = 'failed';
+          newStatus = EmailJobStatus.FAILED;
         }
       } else if (sentTargets > 0 || failedTargets > 0) {
         // Some targets processed
-        newStatus = 'processing';
+        newStatus = EmailJobStatus.PROCESSING;
       }
 
       if (newStatus !== job.status) {

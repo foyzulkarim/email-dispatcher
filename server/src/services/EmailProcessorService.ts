@@ -1,9 +1,9 @@
 import { EmailJobModel } from '../models/EmailJob';
 import { EmailTargetModel } from '../models/EmailTarget';
 import { templateService } from './TemplateService';
-import { emailProviderService } from './EmailProviderService';
-import { EmailProviderModel } from '../models/EmailProvider';
 import { debugEmailService } from './DebugEmailService';
+import { userProviderService } from './UserProviderService';
+import { emailJobService } from './EmailJobService';
 
 class EmailProcessorService {
   
@@ -92,7 +92,8 @@ class EmailProcessorService {
           const processedTemplate = await templateService.processTemplate(
             job.templateId,
             job.templateVariables || {},
-            email
+            email,
+            job.userId // Pass userId for user-aware template access
           );
           emailSubject = processedTemplate.subject;
           emailBody = processedTemplate.htmlContent;
@@ -115,8 +116,8 @@ class EmailProcessorService {
         }
       );
 
-      // Send email via real provider (pass job metadata)
-      await this.sendEmailViaProvider(email, emailSubject, emailBody, job.metadata);
+      // Send email via real provider (pass job metadata and userId)
+      await this.sendEmailViaProvider(email, emailSubject, emailBody, job.metadata, job.userId);
 
       // Update target with success status
       await EmailTargetModel.updateOne(
@@ -146,7 +147,7 @@ class EmailProcessorService {
     }
   }
 
-  private async sendEmailViaProvider(email: string, subject: string, body: string, metadata?: Record<string, any>): Promise<void> {
+  private async sendEmailViaProvider(email: string, subject: string, body: string, metadata?: Record<string, any>, userId?: string): Promise<void> {
     try {
       console.log(`📧 Sending email to ${email}...`);
       console.log(`📬 Subject: ${subject}`);
@@ -178,38 +179,36 @@ class EmailProcessorService {
         return;
       }
       
-      // Find an available provider (original logic)
-      const provider = await EmailProviderModel.findOne({
-        isActive: true,
-        $expr: { $lt: ['$usedToday', '$dailyQuota'] }
-      }).sort({ usedToday: 1 });
-
-      if (!provider) {
-        throw new Error('No available email providers');
+      // If userId is provided, try to find available user providers
+      if (userId) {
+        const availableProviders = await userProviderService.getAvailableProviders(userId);
+        
+        if (availableProviders.length > 0) {
+          // TODO: Implement actual email sending via UserProvider system
+          // For now, we'll log that we found providers but can't send yet
+          console.log(`📧 Found ${availableProviders.length} available providers for user ${userId}`);
+          console.log(`⚠️ Email sending via UserProviders not yet implemented - falling back to debug mode`);
+          
+          // Fall back to debug mode for now
+          const debugResult = await debugEmailService.saveDebugEmail({
+            to: email,
+            subject,
+            htmlContent: body,
+            textContent: body.replace(/<[^>]*>/g, ''),
+            from: process.env.DEFAULT_FROM_EMAIL || 'noreply@example.com',
+            metadata: { ...metadata, availableProviders: availableProviders.length },
+            timestamp: new Date()
+          });
+          
+          if (debugResult.success) {
+            console.log(`✅ Debug email saved (with provider info): ${debugResult.filePath}`);
+          }
+          return;
+        }
       }
-
-      // Prepare email request
-      const emailRequest = {
-        to: email,
-        toName: email.split('@')[0], // Use part before @ as default name
-        subject,
-        htmlContent: body,
-        textContent: body.replace(/<[^>]*>/g, ''), // Strip HTML for text version
-        fromEmail: process.env.DEFAULT_FROM_EMAIL || 'noreply@example.com',
-        fromName: process.env.DEFAULT_FROM_NAME || 'Email Service',
-        metadata: metadata || {}
-      };
-
-      // Send email using the real provider service
-      const response = await emailProviderService.sendEmail(provider, emailRequest);
       
-      if (response.success) {
-        // Update provider usage
-        await emailProviderService.incrementProviderUsage(provider.id);
-        console.log(`✅ Email sent successfully to ${email} via ${provider.name}: ${response.messageId}`);
-      } else {
-        throw new Error(response.error || 'Email sending failed');
-      }
+      // No providers available - use debug mode
+      throw new Error('No email providers available - system is in debug mode only');
       
     } catch (error) {
       console.error(`❌ Error sending email to ${email}:`, error);

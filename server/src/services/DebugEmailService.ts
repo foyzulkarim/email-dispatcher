@@ -322,9 +322,9 @@ export class DebugEmailService {
       }
 
       // Import here to avoid circular dependency
-      const { EmailProviderModel } = await import('../models/EmailProvider');
+      const { UserProviderModel } = await import('../models/UserProvider');
       
-      const activeProviders = await EmailProviderModel.countDocuments({
+      const activeProviders = await UserProviderModel.countDocuments({
         isActive: true,
         $expr: { $lt: ['$usedToday', '$dailyQuota'] }
       });

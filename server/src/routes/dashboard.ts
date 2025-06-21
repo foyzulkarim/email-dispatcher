@@ -2,9 +2,11 @@ import { FastifyInstance } from 'fastify';
 import { ApiResponse } from '../types';
 import { EmailJobModel } from '../models/EmailJob';
 import { EmailTargetModel } from '../models/EmailTarget';
-import { EmailProviderModel } from '../models/EmailProvider';
+import { UserProviderModel } from '../models/UserProvider';
+import { PlatformModel } from '../models/Platform';
 import { SuppressionModel } from '../models/Suppression';
 import { WebhookEventModel } from '../models/WebhookEvent';
+import { userProviderService } from '../services/UserProviderService';
 
 export default async function dashboardRoutes(fastify: FastifyInstance) {
   
@@ -25,7 +27,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
           .sort({ createdAt: -1 })
           .limit(5)
           .select('id subject status createdAt recipients'),
-        EmailProviderModel.find().select('-apiKey'),
+        UserProviderModel.find().select('-apiKey'),
         SuppressionModel.countDocuments(),
         WebhookEventModel.find()
           .sort({ timestamp: -1 })
@@ -110,15 +112,19 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
           failed: todayStatsMap.failed || 0,
           total: Object.values(todayStatsMap).reduce((sum, count) => (sum as number) + (count as number), 0)
         },
-        providers: providerStats.map(provider => ({
-          id: provider.id,
-          name: provider.name,
-          type: provider.type,
-          dailyQuota: provider.dailyQuota,
-          usedToday: provider.usedToday,
-          remainingToday: provider.dailyQuota - provider.usedToday,
-          usagePercentage: Math.round((provider.usedToday / provider.dailyQuota) * 100),
-          isActive: provider.isActive
+        providers: await Promise.all(providerStats.map(async (provider) => {
+          // Get platform info for this provider
+          const platform = await PlatformModel.findOne({ id: provider.platformId });
+          return {
+            id: provider.id,
+            name: provider.name,
+            type: platform?.type || 'unknown',
+            dailyQuota: provider.dailyQuota,
+            usedToday: provider.usedToday,
+            remainingToday: provider.dailyQuota - provider.usedToday,
+            usagePercentage: Math.round((provider.usedToday / provider.dailyQuota) * 100),
+            isActive: provider.isActive
+          };
         })),
         recentJobs: recentJobs.map(job => ({
           id: job.id,
@@ -208,7 +214,7 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
   // Get provider usage chart data
   fastify.get('/chart/providers', async (request, reply) => {
     try {
-      const providers = await EmailProviderModel.find().select('-apiKey');
+      const providers = await UserProviderModel.find().select('-apiKey');
       
       const chartData = providers.map(provider => ({
         name: provider.name,

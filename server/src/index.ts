@@ -9,8 +9,7 @@ import { queueService } from './services/QueueService';
 import { emailProcessorService } from './services/EmailProcessorService';
 import { debugEmailService } from './services/DebugEmailService';
 import emailRoutes from './routes/email';
-import providerRoutes from './routes/provider';
-import dynamicProviderRoutes from './routes/dynamic-provider';
+import userProviderRoutes from './routes/user-provider';
 import webhookRoutes from './routes/webhook';
 import dashboardRoutes from './routes/dashboard';
 import databaseRoutes from './routes/database';
@@ -65,8 +64,7 @@ async function start() {
 
     // Register routes
     await server.register(emailRoutes, { prefix: '/api/email' });
-    await server.register(providerRoutes, { prefix: '/api/provider' });
-    await server.register(dynamicProviderRoutes, { prefix: '/api/dynamic-provider' });
+    await server.register(userProviderRoutes, { prefix: '/api/user-provider' });
     await server.register(webhookRoutes, { prefix: '/api/webhook' });
     await server.register(dashboardRoutes, { prefix: '/api/dashboard' });
     await server.register(databaseRoutes, { prefix: '/api/database' });

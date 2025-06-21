@@ -1,4 +1,4 @@
-import { EmailProviderModel } from '../models/EmailProvider';
+import { UserProviderModel } from '../models/UserProvider';
 
 export class ProviderService {
   async resetDailyQuotas() {
@@ -7,7 +7,7 @@ export class ProviderService {
       today.setHours(0, 0, 0, 0);
 
       // Reset quotas for providers that haven't been reset today
-      const result = await EmailProviderModel.updateMany(
+      const result = await UserProviderModel.updateMany(
         { lastResetDate: { $lt: today } },
         {
           usedToday: 0,
@@ -17,7 +17,7 @@ export class ProviderService {
 
       if (result.modifiedCount > 0) {
         console.log(
-          `✅ Reset daily quotas for ${result.modifiedCount} providers`
+          `✅ Reset daily quotas for ${result.modifiedCount} user providers`
         );
       }
     } catch (error) {

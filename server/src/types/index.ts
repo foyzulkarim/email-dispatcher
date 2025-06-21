@@ -148,6 +148,38 @@ export interface SuppressionEntry {
 }
 
 // Request/Response types for API
+export interface EmailJobRequest {
+  subject?: string;
+  body?: string;
+  templateId?: string;
+  templateVariables?: Record<string, any>;
+  recipients: string[];
+  metadata?: Record<string, any>;
+}
+
+export interface TemplateRequest {
+  name: string;
+  description?: string;
+  subject: string;
+  htmlContent: string;
+  textContent?: string;
+  category?: string;
+  isActive?: boolean;
+}
+
+export interface ProcessedTemplate {
+  subject: string;
+  htmlContent: string;
+  textContent?: string;
+}
+
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: string;
+  message?: string;
+}
+
 export interface SendEmailRequest {
   templateId: string;
   recipients: string[];
