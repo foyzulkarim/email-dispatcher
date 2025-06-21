@@ -112,7 +112,19 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
   }, [editingProvider]);
 
   const loadPresets = async () => {
-    console.log('loadPresets');
+    try {
+      console.log('Loading provider presets...');
+      // TODO: Replace with actual logic to load presets when API is available
+      // const response = await apiService.getProviderPresets();
+      // setPresets(response.data);
+    } catch (error) {
+      console.error('Failed to load provider presets:', error);
+      toast({
+        title: "Error Loading Presets",
+        description: "Unable to load provider presets. Please try again later.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handlePresetSelect = (presetType: string) => {

@@ -1,4 +1,5 @@
 {
+  "_comment": "For production, replace hardcoded password hashes with environment variables or use AWS Secrets Manager",
   "users": [
     {
       "name": "admin",

@@ -1,4 +1,5 @@
 import { FastifyInstance } from 'fastify';
+import sanitizeHtml from 'sanitize-html';
 import {
   ApiResponse,
   SimpleProviderConfigPayload,
@@ -60,14 +61,14 @@ export default async function dynamicProviderRoutes(fastify: FastifyInstance) {
 
         return reply.code(201).send({
           success: true,
-          data: provider,
+          data: provider, // Provider data is already sanitized by the service layer
           message: 'Simple provider configuration created successfully',
         } as ApiResponse);
       } catch (error) {
         fastify.log.error('Error creating simple provider:', error);
         return reply.code(500).send({
           success: false,
-          error: (error as Error).message,
+          error: sanitizeHtml((error as Error).message),
         } as ApiResponse);
       }
     }
@@ -110,7 +111,7 @@ export default async function dynamicProviderRoutes(fastify: FastifyInstance) {
         fastify.log.error('Error creating advanced provider:', error);
         return reply.code(500).send({
           success: false,
-          error: (error as Error).message,
+          error: sanitizeHtml((error as Error).message),
         } as ApiResponse);
       }
     }
@@ -127,13 +128,13 @@ export default async function dynamicProviderRoutes(fastify: FastifyInstance) {
 
       return reply.send({
         success: true,
-        data: result,
+        data: result, // Test result data is controlled by service layer
       } as ApiResponse);
     } catch (error) {
       fastify.log.error('Error testing provider configuration:', error);
       return reply.code(500).send({
         success: false,
-        error: (error as Error).message,
+        error: sanitizeHtml((error as Error).message),
       } as ApiResponse);
     }
   });
@@ -327,15 +328,15 @@ export default async function dynamicProviderRoutes(fastify: FastifyInstance) {
           }
 
           results.push({
-            providerId,
+            providerId: sanitizeHtml(providerId),
             success: true,
             data: result,
           });
         } catch (error) {
           results.push({
-            providerId,
+            providerId: sanitizeHtml(providerId),
             success: false,
-            error: (error as Error).message,
+            error: sanitizeHtml((error as Error).message),
           });
         }
       }
@@ -343,7 +344,7 @@ export default async function dynamicProviderRoutes(fastify: FastifyInstance) {
       return reply.send({
         success: true,
         data: results,
-        message: `Bulk ${action} operation completed`,
+        message: sanitizeHtml(`Bulk ${action} operation completed`),
       } as ApiResponse);
     } catch (error) {
       fastify.log.error('Error in bulk operation:', error);

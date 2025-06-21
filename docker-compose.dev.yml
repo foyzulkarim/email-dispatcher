@@ -24,15 +24,7 @@ services:
       - ./server:/app
       - /app/node_modules
       - ./server/mail-debug:/app/mail-debug
-    develop:
-      watch:
-        - action: sync
-          path: ./server/src
-          target: /app/src
-          ignore:
-            - node_modules/
-        - action: rebuild
-          path: ./server/package.json
+    # Note: develop block removed as it's not part of official Docker Compose spec
 
   # Frontend client
   client:

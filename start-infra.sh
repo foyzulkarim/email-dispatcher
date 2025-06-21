@@ -31,7 +31,8 @@ fi
 echo "🔍 Checking RabbitMQ..."
 if docker exec shared-rabbitmq rabbitmq-diagnostics -q ping >/dev/null 2>&1; then
     echo "✅ RabbitMQ is ready"
-    echo "🌐 RabbitMQ Management UI: http://localhost:15672 (admin/password123)"
+    echo "🌐 RabbitMQ Management UI: http://localhost:15672"
+    echo "ℹ️  Check your .env.infra file for credentials"
 else
     echo "❌ RabbitMQ is not ready yet, please wait a moment and try again"
 fi
