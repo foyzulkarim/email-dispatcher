@@ -1,10 +1,10 @@
-import { EmailProviderModel } from '../models/EmailProvider';
+import { EmailProviderModel } from './EmailProvider';
 import { 
   SimpleProviderConfigPayload, 
   AdvancedProviderConfigPayload, 
   EmailProviderConfig,
   EmailData 
-} from '../types';
+} from '../../types';
 import { AdvancedEmailProviderService } from './AdvancedEmailProviderService';
 import { v4 as uuidv4 } from 'uuid';
 

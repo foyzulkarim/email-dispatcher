@@ -2,13 +2,13 @@ import { FastifyInstance } from 'fastify';
 import { build } from '../fixtures/app';
 
 // Simple mocks without complex hoisting issues
-jest.mock('../../src/models/EmailProvider');
-jest.mock('../../src/models/EmailJob');
-jest.mock('../../src/models/EmailTarget');
-jest.mock('../../src/models/Suppression');
-jest.mock('../../src/services/QueueService');
-jest.mock('../../src/services/TemplateService');
-jest.mock('../../src/services/EmailProviderService');
+jest.mock('../../src/modules/email-provider/EmailProvider');
+jest.mock('../../src/modules/email-job/EmailJob');
+jest.mock('../../src/modules/email-target/EmailTarget');
+jest.mock('../../src/modules/suppression/Suppression');
+jest.mock('../../src/modules/core/infra/QueueService');
+jest.mock('../../src/modules/email-template/TemplateService');
+jest.mock('../../src/modules/email-provider/EmailProviderService');
 jest.mock('../../src/config/providers');
 
 describe('API Endpoints Integration Tests', () => {

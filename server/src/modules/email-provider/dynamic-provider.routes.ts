@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import { ApiResponse, SimpleProviderConfigPayload, AdvancedProviderConfigPayload } from '../types';
-import { ProviderConfigurationService } from '../services/ProviderConfigurationService';
+import { ApiResponse, SimpleProviderConfigPayload, AdvancedProviderConfigPayload } from '../../types';
+import { ProviderConfigurationService } from './ProviderConfigurationService';
 
 export default async function dynamicProviderRoutes(fastify: FastifyInstance) {
   
@@ -304,4 +304,4 @@ export default async function dynamicProviderRoutes(fastify: FastifyInstance) {
       } as ApiResponse);
     }
   });
-} 
+}

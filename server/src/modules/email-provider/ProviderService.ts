@@ -1,5 +1,5 @@
-import { EmailProviderModel } from '../models/EmailProvider';
-import { getProviderConfig } from '../config/providers';
+import { EmailProviderModel } from './EmailProvider';
+import { getProviderConfig } from '../../config/providers';
 
 export class ProviderService {
   

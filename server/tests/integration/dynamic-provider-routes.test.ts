@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { build } from '../fixtures/app';
 
 // Mock the ProviderConfigurationService
-jest.mock('../../src/services/ProviderConfigurationService', () => ({
+jest.mock('../../src/modules/email-provider/ProviderConfigurationService', () => ({
   ProviderConfigurationService: {
     saveSimpleProvider: jest.fn().mockResolvedValue({
       id: 'provider-123',

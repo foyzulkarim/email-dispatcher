@@ -322,7 +322,7 @@ export class DebugEmailService {
       }
 
       // Import here to avoid circular dependency
-      const { EmailProviderModel } = await import('../models/EmailProvider');
+      const { EmailProviderModel } = await import('../../email-provider/EmailProvider');
       
       const activeProviders = await EmailProviderModel.countDocuments({
         isActive: true,
@@ -367,4 +367,4 @@ export class DebugEmailService {
   }
 }
 
-export const debugEmailService = new DebugEmailService(); 
+export const debugEmailService = new DebugEmailService();

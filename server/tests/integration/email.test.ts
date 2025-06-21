@@ -1,12 +1,12 @@
 import { FastifyInstance } from 'fastify';
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
-import { EmailJobModel } from '../../src/models/EmailJob';
-import { EmailTargetModel } from '../../src/models/EmailTarget';
-import { SuppressionModel } from '../../src/models/Suppression';
+import { EmailJobModel } from '../../src/modules/email-job/EmailJob';
+import { EmailTargetModel } from '../../src/modules/email-target/EmailTarget';
+import { SuppressionModel } from '../../src/modules/suppression/Suppression';
 
 // Mock services before any other imports
-jest.mock('../../src/services/QueueService', () => ({
+jest.mock('../../src/modules/core/infra/QueueService', () => ({
   queueService: {
     connect: jest.fn().mockResolvedValue(void 0),
     disconnect: jest.fn().mockResolvedValue(void 0),
@@ -16,7 +16,7 @@ jest.mock('../../src/services/QueueService', () => ({
   }
 }));
 
-jest.mock('../../src/services/TemplateService', () => ({
+jest.mock('../../src/modules/email-template/TemplateService', () => ({
   templateService: {
     processTemplate: jest.fn().mockResolvedValue({
       subject: 'Mock Subject',
@@ -33,8 +33,8 @@ jest.mock('../../src/services/TemplateService', () => ({
 
 // Now import the test app and services after mocking
 import { buildTestApp } from '../utils/testApp';
-import { queueService } from '../../src/services/QueueService';
-import { templateService } from '../../src/services/TemplateService';
+import { queueService } from '../../src/modules/core/infra/QueueService';
+import { templateService } from '../../src/modules/email-template/TemplateService';
 
 describe('Email Routes Integration Tests', () => {
   let app: FastifyInstance;

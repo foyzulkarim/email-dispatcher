@@ -1,4 +1,4 @@
-import { queueService } from '../../src/services/QueueService';
+import { queueService } from '../../src/modules/core/infra/QueueService';
 import amqp from 'amqplib';
 
 // Mock amqplib

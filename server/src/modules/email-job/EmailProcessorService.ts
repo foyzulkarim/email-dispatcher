@@ -1,9 +1,9 @@
-import { EmailJobModel } from '../models/EmailJob';
-import { EmailTargetModel } from '../models/EmailTarget';
-import { templateService } from './TemplateService';
-import { emailProviderService } from './EmailProviderService';
-import { EmailProviderModel } from '../models/EmailProvider';
-import { debugEmailService } from './DebugEmailService';
+import { EmailJobModel } from './EmailJob';
+import { EmailTargetModel } from '../email-target/EmailTarget';
+import { templateService } from '../email-template/TemplateService';
+import { emailProviderService } from '../email-provider/EmailProviderService';
+import { EmailProviderModel } from '../email-provider/EmailProvider';
+import { debugEmailService } from '../core/utils/DebugEmailService';
 
 class EmailProcessorService {
   

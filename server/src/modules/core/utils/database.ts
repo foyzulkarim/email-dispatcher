@@ -32,4 +32,3 @@ export async function disconnectFromDatabase(): Promise<void> {
     throw error;
   }
 }
-

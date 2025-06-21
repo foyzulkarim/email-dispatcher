@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
-import { databaseService } from '../services/DatabaseService';
-import { ApiResponse } from '../types';
+import { databaseService } from './DatabaseService';
+import { ApiResponse } from '../../types';
 
 export default async function databaseRoutes(fastify: FastifyInstance) {
   
@@ -63,4 +63,4 @@ export default async function databaseRoutes(fastify: FastifyInstance) {
       } as ApiResponse);
     }
   });
-} 
+}

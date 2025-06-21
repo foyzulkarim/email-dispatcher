@@ -1,8 +1,8 @@
 import { FastifyInstance } from 'fastify';
-import { ApiResponse } from '../types';
-import { WebhookEventModel } from '../models/WebhookEvent';
-import { EmailTargetModel } from '../models/EmailTarget';
-import { SuppressionModel } from '../models/Suppression';
+import { ApiResponse } from '../../types';
+import { WebhookEventModel } from './WebhookEvent';
+import { EmailTargetModel } from '../email-target/EmailTarget';
+import { SuppressionModel } from '../suppression/Suppression';
 
 export default async function webhookRoutes(fastify: FastifyInstance) {
   

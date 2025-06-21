@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import Mustache from 'mustache';
-import { EmailProviderModel, EmailProviderDocument } from '../models/EmailProvider';
-import { EmailData, EmailProviderConfig } from '../types';
+import { EmailProviderModel, EmailProviderDocument } from './EmailProvider';
+import { EmailData, EmailProviderConfig } from '../../types';
 
 // Service class for handling email provider operations
 export class DynamicEmailProviderService {

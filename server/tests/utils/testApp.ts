@@ -1,5 +1,5 @@
 import Fastify, { FastifyInstance } from 'fastify';
-import emailRoutes from '../../src/routes/email';
+import emailRoutes from '../../src/modules/email-job/email-job.routes';
 
 export async function buildTestApp(): Promise<FastifyInstance> {
   const app = Fastify({

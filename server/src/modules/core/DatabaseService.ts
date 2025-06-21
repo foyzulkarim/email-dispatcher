@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
-import { EmailJobModel } from '../models/EmailJob';
-import { EmailTargetModel } from '../models/EmailTarget';
-import { EmailProviderModel } from '../models/EmailProvider';
-import { SuppressionModel } from '../models/Suppression';
-import { EmailTemplateModel } from '../models/EmailTemplate';
+import { EmailJobModel } from '../email-job/EmailJob';
+import { EmailTargetModel } from '../email-target/EmailTarget';
+import { EmailProviderModel } from '../email-provider/EmailProvider';
+import { SuppressionModel } from '../suppression/Suppression';
+import { EmailTemplateModel } from '../email-template/EmailTemplate';
 import { v4 as uuidv4 } from 'uuid';
 
 export class DatabaseService {

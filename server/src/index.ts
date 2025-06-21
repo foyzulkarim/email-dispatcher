@@ -1,20 +1,20 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import dotenv from 'dotenv';
-import { connectToDatabase } from './utils/database';
-import { providerService } from './services/ProviderService';
-import { emailWorker } from './services/EmailWorker';
-import { databaseService } from './services/DatabaseService';
-import { queueService } from './services/QueueService';
-import { emailProcessorService } from './services/EmailProcessorService';
-import { debugEmailService } from './services/DebugEmailService';
-import emailRoutes from './routes/email';
-import providerRoutes from './routes/provider';
-import dynamicProviderRoutes from './routes/dynamic-provider';
-import webhookRoutes from './routes/webhook';
-import dashboardRoutes from './routes/dashboard';
-import databaseRoutes from './routes/database';
-import templateRoutes from './routes/template';
+import { connectToDatabase } from './modules/core/utils/database';
+import { providerService } from './modules/email-provider/ProviderService';
+import { emailWorker } from './modules/email-job/EmailWorker';
+import { databaseService } from './modules/core/DatabaseService';
+import { queueService } from './modules/core/infra/QueueService';
+import { emailProcessorService } from './modules/email-job/EmailProcessorService';
+import { debugEmailService } from './modules/core/utils/DebugEmailService';
+import emailRoutes from './modules/email-job/email-job.routes';
+import providerRoutes from './modules/email-provider/email-provider.routes';
+import dynamicProviderRoutes from './modules/email-provider/dynamic-provider.routes';
+import webhookRoutes from './modules/webhook-event/webhook-event.routes';
+import dashboardRoutes from './modules/dashboard/dashboard.routes';
+import databaseRoutes from './modules/core/database.routes';
+import templateRoutes from './modules/email-template/email-template.routes';
 
 // Load environment variables
 dotenv.config();

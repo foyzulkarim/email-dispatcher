@@ -1,7 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
-import { TemplateRequest, ApiResponse } from '../types';
-import { templateService } from '../services/TemplateService';
+import { TemplateRequest, ApiResponse } from '../../types';
+import { templateService } from './TemplateService';
 
 export default async function templateRoutes(fastify: FastifyInstance) {
   

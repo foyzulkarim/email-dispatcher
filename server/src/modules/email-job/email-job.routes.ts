@@ -1,11 +1,11 @@
 import { FastifyInstance } from 'fastify';
 import { v4 as uuidv4 } from 'uuid';
-import { EmailJobRequest, ApiResponse } from '../types';
-import { EmailJobModel } from '../models/EmailJob';
-import { EmailTargetModel } from '../models/EmailTarget';
-import { SuppressionModel } from '../models/Suppression';
-import { queueService } from '../services/QueueService';
-import { templateService } from '../services/TemplateService';
+import { EmailJobRequest, ApiResponse } from '../../types';
+import { EmailJobModel } from './EmailJob';
+import { EmailTargetModel } from '../email-target/EmailTarget';
+import { SuppressionModel } from '../suppression/Suppression';
+import { queueService } from '../core/infra/QueueService';
+import { templateService } from '../email-template/TemplateService';
 
 export default async function emailRoutes(fastify: FastifyInstance) {
   

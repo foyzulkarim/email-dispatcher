@@ -1,6 +1,6 @@
 import axios, { AxiosResponse } from 'axios';
-import { EmailProvider, EmailSendRequest, ProviderResponse, ProviderConfig, EmailProviderConfig } from '../types';
-import { EmailProviderModel } from '../models/EmailProvider';
+import { EmailProvider, EmailSendRequest, ProviderResponse, ProviderConfig, EmailProviderConfig } from '../../types';
+import { EmailProviderModel } from './EmailProvider';
 
 export class EmailProviderService {
   

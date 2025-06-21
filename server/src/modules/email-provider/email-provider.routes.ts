@@ -1,9 +1,9 @@
 import { FastifyInstance } from 'fastify';
-import { ApiResponse } from '../types';
-import { EmailProviderModel } from '../models/EmailProvider';
+import { ApiResponse } from '../../types';
+import { EmailProviderModel } from './EmailProvider';
 import { v4 as uuidv4 } from 'uuid';
-import { getProviderConfig, validateProviderConfig } from '../config/providers';
-import { emailProviderService } from '../services/EmailProviderService';
+import { getProviderConfig, validateProviderConfig } from '../../config/providers';
+import { emailProviderService } from './EmailProviderService';
 
 interface CreateProviderRequest {
   name: string;

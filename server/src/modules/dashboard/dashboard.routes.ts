@@ -1,10 +1,10 @@
 import { FastifyInstance } from 'fastify';
-import { ApiResponse } from '../types';
-import { EmailJobModel } from '../models/EmailJob';
-import { EmailTargetModel } from '../models/EmailTarget';
-import { EmailProviderModel } from '../models/EmailProvider';
-import { SuppressionModel } from '../models/Suppression';
-import { WebhookEventModel } from '../models/WebhookEvent';
+import { ApiResponse } from '../../types';
+import { EmailJobModel } from '../email-job/EmailJob';
+import { EmailTargetModel } from '../email-target/EmailTarget';
+import { EmailProviderModel } from '../email-provider/EmailProvider';
+import { SuppressionModel } from '../suppression/Suppression';
+import { WebhookEventModel } from '../webhook-event/WebhookEvent';
 
 export default async function dashboardRoutes(fastify: FastifyInstance) {
   
@@ -232,4 +232,3 @@ export default async function dashboardRoutes(fastify: FastifyInstance) {
     }
   });
 }
-

@@ -1,5 +1,5 @@
-import { EmailTemplateModel } from '../models/EmailTemplate';
-import { ProcessedTemplate } from '../types';
+import { EmailTemplateModel } from './EmailTemplate';
+import { ProcessedTemplate } from '../../types';
 
 export class TemplateService {
   

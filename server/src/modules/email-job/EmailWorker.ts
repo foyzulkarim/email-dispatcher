@@ -1,7 +1,7 @@
-import { EmailProviderModel } from '../models/EmailProvider';
-import { EmailTargetModel } from '../models/EmailTarget';
-import { EmailJobModel } from '../models/EmailJob';
-import { emailProviderService } from './EmailProviderService';
+import { EmailProviderModel } from '../email-provider/EmailProvider';
+import { EmailTargetModel } from '../email-target/EmailTarget';
+import { EmailJobModel } from './EmailJob';
+import { emailProviderService } from '../email-provider/EmailProviderService';
 
 export class EmailWorkerService {
   private isRunning = false;

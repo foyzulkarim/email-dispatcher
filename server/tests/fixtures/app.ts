@@ -1,38 +1,38 @@
 import Fastify, { FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
-import emailRoutes from '../../src/routes/email';
-import providerRoutes from '../../src/routes/provider';
-import dashboardRoutes from '../../src/routes/dashboard';
-import templateRoutes from '../../src/routes/template';
-import dynamicProviderRoutes from '../../src/routes/dynamic-provider';
+import emailRoutes from '../../src/modules/email-job/email-job.routes';
+import providerRoutes from '../../src/modules/email-provider/email-provider.routes';
+import dashboardRoutes from '../../src/modules/dashboard/dashboard.routes';
+import templateRoutes from '../../src/modules/email-template/email-template.routes';
+import dynamicProviderRoutes from '../../src/modules/email-provider/dynamic-provider.routes';
 
 // Mock database connection
-jest.mock('../../src/utils/database', () => ({
+jest.mock('../../src/modules/core/utils/database', () => ({
   connectToDatabase: jest.fn().mockResolvedValue({}),
 }));
 
 // Mock all services
-jest.mock('../../src/services/DatabaseService', () => ({
+jest.mock('../../src/modules/core/DatabaseService', () => ({
   databaseService: {
     initializeDatabase: jest.fn().mockResolvedValue({}),
   },
 }));
 
-jest.mock('../../src/services/ProviderService', () => ({
+jest.mock('../../src/modules/email-provider/ProviderService', () => ({
   providerService: {
     initializeProviders: jest.fn().mockResolvedValue({}),
     startQuotaResetScheduler: jest.fn().mockResolvedValue({}),
   },
 }));
 
-jest.mock('../../src/services/EmailWorker', () => ({
+jest.mock('../../src/modules/email-job/EmailWorker', () => ({
   emailWorker: {
     start: jest.fn().mockResolvedValue({}),
     stop: jest.fn().mockResolvedValue({}),
   },
 }));
 
-jest.mock('../../src/services/DebugEmailService', () => ({
+jest.mock('../../src/modules/core/utils/DebugEmailService', () => ({
   debugEmailService: {
     cleanupOldFiles: jest.fn().mockResolvedValue({}),
   },
