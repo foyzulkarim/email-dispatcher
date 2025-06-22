@@ -38,13 +38,13 @@ Once infrastructure is running, start the application:
 ```
 
 This will start:
-- Email Dispatcher Server on port 3001
-- Email Dispatcher Client on port 8080
+- Email Dispatcher Server on port 4000
+- Email Dispatcher Client on port 3000
 
 ### 3. Access the Application
 
-- **Frontend**: http://localhost:8080
-- **Backend API**: http://localhost:3001
+- **Frontend**: http://localhost:3000
+- **Backend API**: http://localhost:4000
 - **RabbitMQ Management**: http://localhost:15672 (admin/password123)
 
 ## Manual Setup
@@ -186,8 +186,8 @@ RABBITMQ_URL=amqp://user:pass@your-cloud-rabbitmq:5672/email-dispatcher
 | RabbitMQ | 5672 | Message Queue |
 | RabbitMQ Management | 15672 | Web UI |
 | Redis | 6379 | Cache (optional) |
-| Email Server | 3001 | Backend API |
-| Email Client | 8080 | Frontend |
+| Email Server | 4000 | Backend API |
+| Email Client | 3000 | Frontend |
 
 ## Security Notes
 

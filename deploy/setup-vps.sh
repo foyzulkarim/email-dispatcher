@@ -175,7 +175,7 @@ check_service() {
 }
 
 # Check application health
-if ! check_service "Email Dispatcher API" "http://localhost:3001/health"; then
+if ! check_service "Email Dispatcher API" "http://localhost:4000/health"; then
     echo "$(date): Restarting email dispatcher..." >> "$LOG_FILE"
     cd /opt/email-dispatcher
     docker-compose -f docker-compose.prod.yml restart server

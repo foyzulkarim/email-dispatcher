@@ -40,15 +40,6 @@ dev-down: ## Stop development environment
 dev-clean: ## Stop development environment and remove volumes
 	docker compose -f docker-compose.dev.yml down -v
 
-dev-full: ## Start infrastructure and development environment
-	$(MAKE) infra-up
-	sleep 10
-	$(MAKE) dev
-
-dev-full-down: ## Stop both development and infrastructure
-	$(MAKE) dev-down
-	$(MAKE) infra-down
-
 # Production commands
 prod: ## Start production environment
 	docker compose -f docker-compose.prod.yml up -d
@@ -150,9 +141,9 @@ clean-all: ## Clean up all Docker resources (destructive)
 # Health checks
 health: ## Check application health
 	@echo "Checking frontend health..."
-	curl -f http://localhost:8080/ > /dev/null && echo "✅ Frontend: OK" || echo "❌ Frontend: FAILED"
+	curl -f http://localhost:3000/ > /dev/null && echo "✅ Frontend: OK" || echo "❌ Frontend: FAILED"
 	@echo "Checking backend health..."
-	curl -f http://localhost:3001/health > /dev/null && echo "✅ Backend: OK" || echo "❌ Backend: FAILED"
+	curl -f http://localhost:4000/health > /dev/null && echo "✅ Backend: OK" || echo "❌ Backend: FAILED"
 
 # Development helpers
 shell-server: ## Open shell in server container

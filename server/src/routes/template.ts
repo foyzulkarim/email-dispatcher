@@ -249,8 +249,10 @@ export default async function templateRoutes(fastify: FastifyInstance) {
     }
   });
 
-  // Legacy routes for backward compatibility (will be deprecated)
+  // Legacy routes commented out to avoid conflicts with new user-scoped routes
+  // These can be removed completely once the migration is complete
   
+  /*
   // Get all templates (legacy)
   fastify.get<{ 
     Querystring: { 
@@ -481,4 +483,5 @@ export default async function templateRoutes(fastify: FastifyInstance) {
       } as ApiResponse);
     }
   });
+  */
 } 

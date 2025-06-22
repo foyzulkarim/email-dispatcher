@@ -35,8 +35,8 @@ A comprehensive email dispatch service with intelligent provider switching, queu
    ```
 
 4. **Access the application**
-   - Frontend: http://localhost:8080
-   - Backend API: http://localhost:3001
+   - Frontend: http://localhost:3000
+   - Backend API: http://localhost:4000
    - RabbitMQ Management: http://localhost:15672 (admin/password123)
    - MongoDB: localhost:27017
 
@@ -242,7 +242,7 @@ STAGING_VPS_HOST=your-staging-server-ip
 
 ### Health Checks
 - Frontend: `http://localhost/`
-- Backend: `http://localhost:3001/health`
+- Backend: `http://localhost:4000/health`
 
 ### Log Locations
 - Application logs: `docker compose logs -f`
@@ -258,7 +258,7 @@ docker compose ps
 docker stats
 
 # Application metrics
-curl http://localhost:3001/api/dashboard/stats
+curl http://localhost:4000/api/dashboard/stats
 ```
 
 ## 🔒 Security
@@ -318,8 +318,8 @@ This project is licensed under the ISC License - see the [LICENSE](LICENSE) file
 1. **Port conflicts**
    ```bash
    # Check what's using ports
-   sudo netstat -tulpn | grep :8080
-   sudo netstat -tulpn | grep :3001
+   sudo netstat -tulpn | grep :3000
+   sudo netstat -tulpn | grep 4000
    ```
 
 2. **Docker permission issues**

@@ -1,6 +1,6 @@
 const axios = require('axios');
 
-const BASE_URL = 'http://localhost:3001/api/dynamic-provider';
+const BASE_URL = 'http://localhost:4000/api/dynamic-provider';
 
 // Test dynamic provider functionality
 async function testDynamicProviders() {

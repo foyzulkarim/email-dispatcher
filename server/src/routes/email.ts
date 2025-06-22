@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { EmailJobRequest, ApiResponse } from '../types';
 import { emailJobService } from '../services/EmailJobService';
+import { authenticateUser, requireOwnership } from '../middleware/auth';
 
 export default async function emailRoutes(fastify: FastifyInstance) {
   
@@ -8,7 +9,9 @@ export default async function emailRoutes(fastify: FastifyInstance) {
   fastify.post<{ 
     Params: { userId: string };
     Body: EmailJobRequest;
-  }>('/:userId/submit', async (request, reply) => {
+  }>('/:userId/submit', {
+    preHandler: requireOwnership()
+  }, async (request, reply) => {
     try {
       const { userId } = request.params;
       const jobRequest = request.body;
@@ -48,7 +51,9 @@ export default async function emailRoutes(fastify: FastifyInstance) {
   // Get job status
   fastify.get<{ 
     Params: { userId: string; jobId: string };
-  }>('/:userId/job/:jobId', async (request, reply) => {
+  }>('/:userId/job/:jobId', {
+    preHandler: requireOwnership()
+  }, async (request, reply) => {
     try {
       const { userId, jobId } = request.params;
 
@@ -83,7 +88,9 @@ export default async function emailRoutes(fastify: FastifyInstance) {
       limit?: string; 
       status?: string; 
     };
-  }>('/:userId/jobs', async (request, reply) => {
+  }>('/:userId/jobs', {
+    preHandler: requireOwnership()
+  }, async (request, reply) => {
     try {
       const { userId } = request.params;
       const { page, limit, status } = request.query;
@@ -111,7 +118,9 @@ export default async function emailRoutes(fastify: FastifyInstance) {
   // Get job targets (individual email statuses)
   fastify.get<{ 
     Params: { userId: string; jobId: string };
-  }>('/:userId/job/:jobId/targets', async (request, reply) => {
+  }>('/:userId/job/:jobId/targets', {
+    preHandler: requireOwnership()
+  }, async (request, reply) => {
     try {
       const { userId, jobId } = request.params;
 
@@ -204,7 +213,9 @@ export default async function emailRoutes(fastify: FastifyInstance) {
   // Get user job statistics
   fastify.get<{ 
     Params: { userId: string };
-  }>('/:userId/stats', async (request, reply) => {
+  }>('/:userId/stats', {
+    preHandler: requireOwnership()
+  }, async (request, reply) => {
     try {
       const { userId } = request.params;
 

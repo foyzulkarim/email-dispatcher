@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { ApiResponse } from '../types';
 import { userService } from '../services/UserService';
 import { UserRole } from '../types/enums';
+import { authenticateUser, requireAdmin, requireOwnership } from '../middleware/auth';
 
 export default async function userRoutes(fastify: FastifyInstance) {
   
@@ -14,7 +15,9 @@ export default async function userRoutes(fastify: FastifyInstance) {
       isActive?: string;
       search?: string;
     } 
-  }>('/', async (request, reply) => {
+  }>('/', {
+    preHandler: requireAdmin
+  }, async (request, reply) => {
     try {
       const { page, limit, role, isActive, search } = request.query;
 
@@ -43,7 +46,9 @@ export default async function userRoutes(fastify: FastifyInstance) {
   // Get user by ID
   fastify.get<{ 
     Params: { userId: string };
-  }>('/:userId', async (request, reply) => {
+  }>('/:userId', {
+    preHandler: requireOwnership()
+  }, async (request, reply) => {
     try {
       const { userId } = request.params;
 
@@ -86,7 +91,9 @@ export default async function userRoutes(fastify: FastifyInstance) {
         timezone?: string;
       };
     }>;
-  }>('/:userId', async (request, reply) => {
+  }>('/:userId', {
+    preHandler: requireAdmin
+  }, async (request, reply) => {
     try {
       const { userId } = request.params;
       const updateData = request.body;
@@ -126,7 +133,9 @@ export default async function userRoutes(fastify: FastifyInstance) {
   // Soft delete user (Admin function)
   fastify.delete<{ 
     Params: { userId: string };
-  }>('/:userId', async (request, reply) => {
+  }>('/:userId', {
+    preHandler: requireAdmin
+  }, async (request, reply) => {
     try {
       const { userId } = request.params;
 
@@ -156,7 +165,9 @@ export default async function userRoutes(fastify: FastifyInstance) {
   // Reactivate user (Admin function)
   fastify.post<{ 
     Params: { userId: string };
-  }>('/:userId/reactivate', async (request, reply) => {
+  }>('/:userId/reactivate', {
+    preHandler: requireAdmin
+  }, async (request, reply) => {
     try {
       const { userId } = request.params;
 
@@ -184,7 +195,9 @@ export default async function userRoutes(fastify: FastifyInstance) {
   });
 
   // Get user statistics (Admin function)
-  fastify.get('/stats/overview', async (request, reply) => {
+  fastify.get('/stats/overview', {
+    preHandler: requireAdmin
+  }, async (request, reply) => {
     try {
       const stats = await userService.getUserStats();
 
@@ -208,7 +221,9 @@ export default async function userRoutes(fastify: FastifyInstance) {
       q: string;
       limit?: string;
     } 
-  }>('/search', async (request, reply) => {
+  }>('/search', {
+    preHandler: requireAdmin
+  }, async (request, reply) => {
     try {
       const { q, limit } = request.query;
 
@@ -241,7 +256,9 @@ export default async function userRoutes(fastify: FastifyInstance) {
   // Get users by role
   fastify.get<{ 
     Params: { role: string };
-  }>('/role/:role', async (request, reply) => {
+  }>('/role/:role', {
+    preHandler: requireAdmin
+  }, async (request, reply) => {
     try {
       const { role } = request.params;
 
@@ -274,7 +291,9 @@ export default async function userRoutes(fastify: FastifyInstance) {
       days?: string;
       limit?: string;
     } 
-  }>('/recent-activity', async (request, reply) => {
+  }>('/recent-activity', {
+    preHandler: requireAdmin
+  }, async (request, reply) => {
     try {
       const { days, limit } = request.query;
 
@@ -306,7 +325,9 @@ export default async function userRoutes(fastify: FastifyInstance) {
         isActive: boolean;
       }>;
     };
-  }>('/bulk-update', async (request, reply) => {
+  }>('/bulk-update', {
+    preHandler: requireAdmin
+  }, async (request, reply) => {
     try {
       const { userIds, updateData } = request.body;
 
@@ -352,7 +373,9 @@ export default async function userRoutes(fastify: FastifyInstance) {
   // Check if user is active
   fastify.get<{ 
     Params: { userId: string };
-  }>('/:userId/status', async (request, reply) => {
+  }>('/:userId/status', {
+    preHandler: authenticateUser
+  }, async (request, reply) => {
     try {
       const { userId } = request.params;
 

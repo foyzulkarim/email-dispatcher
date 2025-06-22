@@ -11,6 +11,7 @@ import { debugEmailService } from './services/DebugEmailService';
 import emailRoutes from './routes/email';
 import userProviderRoutes from './routes/user-provider';
 import userRoutes from './routes/user';
+import authRoutes from './routes/auth';
 import webhookRoutes from './routes/webhook';
 import dashboardRoutes from './routes/dashboard';
 import databaseRoutes from './routes/database';
@@ -64,6 +65,7 @@ async function start() {
     await debugEmailService.cleanupOldFiles();
 
     // Register routes
+    await server.register(authRoutes, { prefix: '/api/auth' });
     await server.register(emailRoutes, { prefix: '/api/email' });
     await server.register(userProviderRoutes, { prefix: '/api/user-provider' });
     await server.register(userRoutes, { prefix: '/api/user' });

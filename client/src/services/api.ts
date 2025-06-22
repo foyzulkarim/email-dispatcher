@@ -1,6 +1,6 @@
 import { DashboardStats, EmailJob, EmailProvider, SubmitEmailRequest, SuppressionEntry, ChartData, DynamicProvider, DynamicProviderListResponse, DynamicProviderResponse, ProviderPreset, SimpleProviderRequest, AdvancedProviderRequest, TestProviderRequest, TestProviderResponse, BulkProviderRequest } from "@/types/api";
 
-const API_BASE_URL = "http://localhost:3001/api";
+const API_BASE_URL = "http://localhost:4000/api";
 
 class ApiService {
   private async request<T>(endpoint: string, options?: RequestInit): Promise<T> {

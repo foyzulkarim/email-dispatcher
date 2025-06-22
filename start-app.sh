@@ -36,8 +36,8 @@ docker-compose -f docker-compose.dev.yml up -d
 
 echo ""
 echo "✅ Application services are starting up!"
-echo "🖥️  Frontend: http://localhost:8080"
-echo "🔧 Backend API: http://localhost:3001"
+echo "🖥️  Frontend: http://localhost:3000"
+echo "🔧 Backend API: http://localhost:4000"
 echo ""
 echo "To view logs: docker-compose -f docker-compose.dev.yml logs -f"
 echo "To stop application: docker-compose -f docker-compose.dev.yml down" 

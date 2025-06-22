@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { ApiResponse } from '../types';
 import { userProviderService } from '../services/UserProviderService';
 import { platformService } from '../services/PlatformService';
+import { authenticateUser, requireOwnership } from '../middleware/auth';
 
 export default async function userProviderRoutes(fastify: FastifyInstance) {
   
@@ -9,7 +10,9 @@ export default async function userProviderRoutes(fastify: FastifyInstance) {
   fastify.get<{ 
     Params: { userId: string };
     Querystring: { active?: string };
-  }>('/:userId', async (request, reply) => {
+  }>('/:userId', {
+    preHandler: requireOwnership()
+  }, async (request, reply) => {
     try {
       const { userId } = request.params;
       const { active } = request.query;
@@ -45,7 +48,9 @@ export default async function userProviderRoutes(fastify: FastifyInstance) {
   // Get specific user provider by ID
   fastify.get<{ 
     Params: { userId: string; providerId: string };
-  }>('/:userId/:providerId', async (request, reply) => {
+  }>('/:userId/:providerId', {
+    preHandler: requireOwnership()
+  }, async (request, reply) => {
     try {
       const { userId, providerId } = request.params;
 
@@ -90,7 +95,9 @@ export default async function userProviderRoutes(fastify: FastifyInstance) {
       dailyQuota: number;
       customConfig?: any;
     };
-  }>('/:userId', async (request, reply) => {
+  }>('/:userId', {
+    preHandler: requireOwnership()
+  }, async (request, reply) => {
     try {
       const { userId } = request.params;
       const { platformId, name, apiKey, apiSecret, dailyQuota, customConfig } = request.body;
@@ -170,7 +177,9 @@ export default async function userProviderRoutes(fastify: FastifyInstance) {
       isActive: boolean;
       customConfig: any;
     }>;
-  }>('/:userId/:providerId', async (request, reply) => {
+  }>('/:userId/:providerId', {
+    preHandler: requireOwnership()
+  }, async (request, reply) => {
     try {
       const { userId, providerId } = request.params;
       const updateData = request.body;
@@ -259,7 +268,9 @@ export default async function userProviderRoutes(fastify: FastifyInstance) {
   // Get user provider statistics
   fastify.get<{ 
     Params: { userId: string };
-  }>('/:userId/stats', async (request, reply) => {
+  }>('/:userId/stats', {
+    preHandler: requireOwnership()
+  }, async (request, reply) => {
     try {
       const { userId } = request.params;
 
@@ -282,7 +293,9 @@ export default async function userProviderRoutes(fastify: FastifyInstance) {
   // Test provider connection
   fastify.post<{ 
     Params: { userId: string; providerId: string };
-  }>('/:userId/:providerId/test', async (request, reply) => {
+  }>('/:userId/:providerId/test', {
+    preHandler: requireOwnership()
+  }, async (request, reply) => {
     try {
       const { userId, providerId } = request.params;
 
@@ -306,7 +319,9 @@ export default async function userProviderRoutes(fastify: FastifyInstance) {
   // Get available providers (active and under quota)
   fastify.get<{ 
     Params: { userId: string };
-  }>('/:userId/available', async (request, reply) => {
+  }>('/:userId/available', {
+    preHandler: requireOwnership()
+  }, async (request, reply) => {
     try {
       const { userId } = request.params;
 

@@ -12,7 +12,7 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-EXPOSE 8080
+EXPOSE 3000
 CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
 # Build stage

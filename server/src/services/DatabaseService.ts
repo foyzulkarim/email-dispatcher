@@ -5,6 +5,9 @@ import { SuppressionModel } from '../models/Suppression';
 import { EmailTemplateModel } from '../models/EmailTemplate';
 import { v4 as uuidv4 } from 'uuid';
 
+// System user ID for templates and other system-created entities
+export const SYSTEM_USER_ID = 'system-user';
+
 export class DatabaseService {
   
   async initializeDatabase(): Promise<void> {
@@ -65,6 +68,7 @@ export class DatabaseService {
       const sampleTemplates = [
         {
           id: uuidv4(),
+          userId: SYSTEM_USER_ID,
           name: 'Welcome Email',
           description: 'Welcome new users to the platform',
           subject: 'Welcome to {company_name}, {first_name}!',
@@ -130,6 +134,7 @@ export class DatabaseService {
         },
         {
           id: uuidv4(),
+          userId: SYSTEM_USER_ID,
           name: 'Password Reset',
           description: 'Help users reset their forgotten passwords',
           subject: 'Reset Your Password - {company_name}',
@@ -195,6 +200,7 @@ export class DatabaseService {
         },
         {
           id: uuidv4(),
+          userId: SYSTEM_USER_ID,
           name: 'Order Confirmation',
           description: 'Confirm customer orders and provide details',
           subject: 'Order Confirmation #{order_id} - Thank You!',
@@ -274,6 +280,7 @@ export class DatabaseService {
         },
         {
           id: uuidv4(),
+          userId: SYSTEM_USER_ID,
           name: 'Newsletter',
           description: 'Monthly newsletter template',
           subject: '{company_name} Newsletter - {month} {current_year}',

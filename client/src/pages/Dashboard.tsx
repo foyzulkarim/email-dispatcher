@@ -4,8 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Mail, Send, Shield, Settings } from "lucide-react";
+import { Mail, Send, Shield, Settings, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { useApi } from "@/hooks/useApi";
+import { toast } from "sonner";
 
 // Fake data
 const mockStats = {
@@ -104,26 +107,52 @@ const mockRecentJobs = [
 ];
 
 export default function Dashboard() {
+  const { user } = useAuth();
+  const { get } = useApi();
   const [lastUpdated, setLastUpdated] = useState(new Date());
   const [autoRefresh, setAutoRefresh] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const refreshData = async () => {
+    if (!user) return;
+    
+    try {
+      setIsLoading(true);
+      // Here you would fetch real data from your API
+      // For now, we'll just update the timestamp
+      setLastUpdated(new Date());
+    } catch (error) {
+      console.error('Failed to refresh data:', error);
+      toast.error('Failed to refresh dashboard data');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (autoRefresh) {
       const interval = setInterval(() => {
-        setLastUpdated(new Date());
+        refreshData();
       }, 30000);
       return () => clearInterval(interval);
     }
-  }, [autoRefresh]);
+  }, [autoRefresh, user]);
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Email Dispatch Dashboard</h1>
+          <h1 className="text-3xl font-bold">
+            Welcome back, {user?.name || 'User'}!
+          </h1>
           <p className="text-muted-foreground">
             Last updated: {lastUpdated.toLocaleTimeString()}
+            {isLoading && (
+              <span className="ml-2">
+                <Loader2 className="h-4 w-4 animate-spin inline" />
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
