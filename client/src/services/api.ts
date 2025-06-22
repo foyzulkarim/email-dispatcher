@@ -40,15 +40,15 @@ class ApiService {
       limit: limit.toString(),
       ...(status && { status }),
     });
-    return this.request<{jobs: EmailJob[], total: number}>(`/email/jobs?${params}`);
+    return this.request<{jobs: EmailJob[], total: number}>(`/email-jobs?${params}`);
   }
 
   async getEmailJob(id: string): Promise<EmailJob> {
-    return this.request<EmailJob>(`/email/job/${id}`);
+    return this.request<EmailJob>(`/email-jobs/${id}`);
   }
 
   async submitEmailJob(data: SubmitEmailRequest): Promise<{jobId: string, message: string}> {
-    return this.request<{jobId: string, message: string}>('/email/submit', {
+    return this.request<{jobId: string, message: string}>('/email-jobs', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -94,60 +94,60 @@ class ApiService {
     });
   }
 
-  // Dynamic Provider endpoints
+  // Dynamic Provider endpoints (UserProvider)
   async getDynamicProviders(isActive?: boolean): Promise<DynamicProviderListResponse> {
     const params = isActive !== undefined ? `?isActive=${isActive}` : '';
-    return this.request<DynamicProviderListResponse>(`/dynamic-provider/${params}`);
+    return this.request<DynamicProviderListResponse>(`/user-providers${params}`);
   }
 
   async getDynamicProvider(id: string): Promise<DynamicProviderResponse> {
-    return this.request<DynamicProviderResponse>(`/dynamic-provider/${id}`);
+    return this.request<DynamicProviderResponse>(`/user-providers/${id}`);
   }
 
   async createSimpleProvider(data: SimpleProviderRequest): Promise<DynamicProviderResponse> {
-    return this.request<DynamicProviderResponse>('/dynamic-provider/simple', {
+    return this.request<DynamicProviderResponse>('/user-providers', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async createAdvancedProvider(data: AdvancedProviderRequest): Promise<DynamicProviderResponse> {
-    return this.request<DynamicProviderResponse>('/dynamic-provider/advanced', {
+    return this.request<DynamicProviderResponse>('/user-providers', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async testProviderConfiguration(data: TestProviderRequest): Promise<{data: TestProviderResponse}> {
-    return this.request<{data: TestProviderResponse}>('/dynamic-provider/test', {
+    return this.request<{data: TestProviderResponse}>('/user-providers/test', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
   async updateDynamicProvider(id: string, data: Partial<SimpleProviderRequest>): Promise<DynamicProviderResponse> {
-    return this.request<DynamicProviderResponse>(`/dynamic-provider/${id}`, {
+    return this.request<DynamicProviderResponse>(`/user-providers/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     });
   }
 
   async deleteDynamicProvider(id: string): Promise<{message: string}> {
-    return this.request<{message: string}>(`/dynamic-provider/${id}`, {
+    return this.request<{message: string}>(`/user-providers/${id}`, {
       method: 'DELETE',
     });
   }
 
   async bulkProviderOperation(data: BulkProviderRequest): Promise<{message: string}> {
-    return this.request<{message: string}>('/dynamic-provider/bulk', {
+    return this.request<{message: string}>('/user-providers/bulk', {
       method: 'POST',
       body: JSON.stringify(data),
     });
   }
 
-  // Get provider presets
-  async getProviderPresets(): Promise<{success: boolean, data: Record<string, ProviderPreset>}> {
-    return this.request<{success: boolean, data: Record<string, ProviderPreset>}>('/dynamic-provider/presets');
+  // Get available platforms
+  async getPlatforms(): Promise<{success: boolean, data: any[]}> {
+    return this.request<{success: boolean, data: any[]}>('/platforms');
   }
 }
 

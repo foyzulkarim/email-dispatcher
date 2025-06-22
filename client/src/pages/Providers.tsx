@@ -40,19 +40,17 @@ export default function Providers() {
       setIsLoading(true);
       const response = await apiService.getDynamicProviders();
       
-      // Ensure all providers have required numeric properties with defaults
-      // Map API response structure to UI expected structure
+      // Normalize providers data to match UI expectations
       const normalizedProviders = (response.data || []).map(provider => ({
         ...provider,
         dailyQuota: provider.dailyQuota || 0,
-        remainingToday: provider.remainingToday || 0,
-        totalSent: provider.usedToday || provider.totalSent || 0, // API uses 'usedToday'
-        successRate: provider.successRate || 95, // Default success rate since API doesn't provide it
-        isActive: provider.isActive ?? true,
-        config: provider.config || { apiKey: '' },
-        createdAt: provider.createdAt || provider.lastResetDate || new Date().toISOString(),
-        updatedAt: provider.updatedAt || provider.lastResetDate || new Date().toISOString(),
-        lastUsed: provider.lastUsed || provider.lastResetDate
+        usedToday: provider.usedToday || 0,
+        remainingToday: Math.max(0, (provider.dailyQuota || 0) - (provider.usedToday || 0)),
+        totalSent: provider.usedToday || 0,
+        successRate: 95, // Default success rate since API doesn't provide it
+        type: provider.platformId, // Map platformId to type for UI compatibility
+        createdAt: provider.createdAt || new Date().toISOString(),
+        updatedAt: provider.updatedAt || new Date().toISOString(),
       }));
       
       setProviders(normalizedProviders);
@@ -63,7 +61,7 @@ export default function Providers() {
         description: "Failed to load email providers",
         variant: "destructive",
       });
-      setProviders([]); // Set empty array on error
+      setProviders([]);
     } finally {
       setIsLoading(false);
     }
@@ -119,10 +117,12 @@ export default function Providers() {
         return <div {...iconProps} style={{ backgroundColor: '#0B8F47', color: 'white', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>BR</div>;
       case 'mailgun':
         return <div {...iconProps} style={{ backgroundColor: '#F56500', color: 'white', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>MG</div>;
-      case 'aws-ses':
+      case 'ses':
         return <div {...iconProps} style={{ backgroundColor: '#FF9900', color: 'white', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>AWS</div>;
       case 'postmark':
         return <div {...iconProps} style={{ backgroundColor: '#FFCC00', color: 'black', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>PM</div>;
+      case 'mailjet':
+        return <div {...iconProps} style={{ backgroundColor: '#F60', color: 'white', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold' }}>MJ</div>;
       default:
         return <Settings {...iconProps} />;
     }
@@ -137,9 +137,8 @@ export default function Providers() {
 
   // Calculate summary stats with safe defaults
   const totalQuotaUsed = providers.reduce((sum, p) => {
-    const dailyQuota = p.dailyQuota || 0;
-    const remainingToday = p.remainingToday || 0;
-    return sum + Math.max(0, dailyQuota - remainingToday);
+    const usedToday = p.usedToday || 0;
+    return sum + usedToday;
   }, 0);
   
   const totalQuotaLimit = providers.reduce((sum, p) => sum + (p.dailyQuota || 0), 0);
@@ -243,9 +242,8 @@ export default function Providers() {
         {providers.map((provider) => {
           // Safe calculations with fallbacks
           const dailyQuota = provider.dailyQuota || 0;
-          const remainingToday = provider.remainingToday || 0;
-          const quotaUsed = Math.max(0, dailyQuota - remainingToday);
-          const quotaPercentage = dailyQuota > 0 ? (quotaUsed / dailyQuota) * 100 : 0;
+          const usedToday = provider.usedToday || 0;
+          const quotaPercentage = dailyQuota > 0 ? (usedToday / dailyQuota) * 100 : 0;
           const isQuotaWarning = quotaPercentage >= 80;
           const status = getProviderStatus(provider);
 
@@ -337,7 +335,7 @@ export default function Providers() {
                 <div>
                   <div className="flex justify-between text-sm mb-2">
                     <span>Quota Usage</span>
-                    <span>{quotaUsed.toLocaleString()} / {dailyQuota.toLocaleString()}</span>
+                    <span>{usedToday.toLocaleString()} / {dailyQuota.toLocaleString()}</span>
                   </div>
                   <Progress 
                     value={quotaPercentage} 
@@ -383,11 +381,11 @@ export default function Providers() {
                 </div>
 
                 {/* Provider-specific info */}
-                {provider.config?.endpoint && (
+                {provider.customConfig?.endpoint && (
                   <div className="text-sm">
                     <p className="text-muted-foreground">Endpoint</p>
-                    <p className="font-mono text-xs truncate" title={provider.config.endpoint}>
-                      {provider.config.endpoint}
+                    <p className="font-mono text-xs truncate" title={provider.customConfig.endpoint}>
+                      {provider.customConfig.endpoint}
                     </p>
                   </div>
                 )}

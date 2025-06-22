@@ -25,15 +25,23 @@ export interface DashboardStats {
 
 export interface EmailJob {
   id: string;
+  userId: string;
   subject: string;
+  body: string;
+  recipients: string[];
   status: 'pending' | 'processing' | 'completed' | 'failed';
-  recipientCount: number;
-  processedCount: number;
-  successCount: number;
-  failedCount: number;
+  metadata: Record<string, any>;
+  templateId?: string;
+  templateVariables?: Record<string, any>;
+  userProviderId?: string;
   createdAt: string;
+  updatedAt: string;
+  // Calculated fields for UI
+  recipientCount?: number;
+  processedCount?: number;
+  successCount?: number;
+  failedCount?: number;
   completedAt?: string;
-  metadata?: Record<string, string>;
 }
 
 export interface EmailProvider {
@@ -52,7 +60,10 @@ export interface SubmitEmailRequest {
   subject: string;
   body: string;
   recipients: string[];
-  metadata?: Record<string, string>;
+  templateId?: string;
+  templateVariables?: Record<string, any>;
+  userProviderId?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface SuppressionEntry {
@@ -71,22 +82,34 @@ export interface ChartData {
   total: number;
 }
 
-// Dynamic Provider Types
+// Dynamic Provider Types (UserProvider from server)
 export interface DynamicProvider {
   id: string;
+  userId: string;
+  platformId: string;
   name: string;
   type: string;
+  apiKey: string;
+  apiSecret?: string;
   isActive: boolean;
   dailyQuota: number;
-  remainingToday: number;
-  totalSent: number;
-  successRate: number;
-  usedToday?: number; // API sometimes uses this instead of totalSent
+  usedToday: number;
+  remainingToday?: number; // calculated field
+  totalSent?: number; // calculated field
+  successRate?: number; // calculated field
   lastUsed?: string;
   createdAt: string;
   updatedAt: string;
-  lastResetDate?: string; // API provides this field
-  config: ProviderConfig;
+  lastResetDate: string;
+  customConfig?: {
+    endpoint?: string;
+    headers?: Record<string, any>;
+    authentication?: {
+      headerName?: string;
+      prefix?: string;
+      customHeaders?: Record<string, any>;
+    };
+  };
 }
 
 export interface ProviderConfig {
@@ -114,7 +137,7 @@ export interface ProviderPreset {
 
 export interface SimpleProviderRequest {
   name: string;
-  type: string;
+  platformId: string;
   apiKey: string;
   apiSecret?: string;
   dailyQuota: number;
@@ -123,20 +146,20 @@ export interface SimpleProviderRequest {
 
 export interface AdvancedProviderRequest {
   name: string;
-  type: string;
+  platformId: string;
   apiKey: string;
   apiSecret?: string;
   dailyQuota: number;
   isActive: boolean;
-  endpoint: string;
-  method: string;
-  headers?: Record<string, string>;
-  authentication?: {
-    type: 'api-key' | 'basic' | 'bearer';
-    headerName?: string;
+  customConfig?: {
+    endpoint?: string;
+    headers?: Record<string, any>;
+    authentication?: {
+      headerName?: string;
+      prefix?: string;
+      customHeaders?: Record<string, any>;
+    };
   };
-  payloadTemplate?: Record<string, unknown>;
-  fieldMappings?: Record<string, string>;
 }
 
 export type TestProviderRequest = SimpleProviderRequest;

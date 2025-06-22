@@ -13,7 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Plus, TestTube, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiService } from "@/services/api";
-import { ProviderPreset, SimpleProviderRequest, AdvancedProviderRequest, TestProviderResponse, DynamicProvider } from "@/types/api";
+import { SimpleProviderRequest, AdvancedProviderRequest, TestProviderResponse, DynamicProvider } from "@/types/api";
 
 interface ProviderFormProps {
   onProviderCreated: () => void;
@@ -21,20 +21,71 @@ interface ProviderFormProps {
   onProviderUpdated?: () => void;
 }
 
+// Available platforms with their configurations
+const PLATFORM_PRESETS = {
+  sendgrid: {
+    name: 'SendGrid',
+    description: 'Popular email service with reliable delivery',
+    authType: 'api-key',
+    requiresSecret: false,
+    fields: ['apiKey']
+  },
+  brevo: {
+    name: 'Brevo (Sendinblue)',
+    description: 'European email marketing platform',
+    authType: 'api-key',
+    requiresSecret: false,
+    fields: ['apiKey']
+  },
+  mailgun: {
+    name: 'Mailgun',
+    description: 'Developer-focused email service',
+    authType: 'api-key',
+    requiresSecret: false,
+    fields: ['apiKey']
+  },
+  postmark: {
+    name: 'Postmark',
+    description: 'Transactional email service',
+    authType: 'api-key',
+    requiresSecret: false,
+    fields: ['apiKey']
+  },
+  mailjet: {
+    name: 'Mailjet',
+    description: 'Email service with API key and secret',
+    authType: 'api-key-secret',
+    requiresSecret: true,
+    fields: ['apiKey', 'apiSecret']
+  },
+  ses: {
+    name: 'Amazon SES',
+    description: 'AWS Simple Email Service',
+    authType: 'api-key-secret',
+    requiresSecret: true,
+    fields: ['apiKey', 'apiSecret']
+  },
+  custom: {
+    name: 'Custom Provider',
+    description: 'Configure your own email service',
+    authType: 'custom',
+    requiresSecret: false,
+    fields: ['apiKey']
+  }
+};
+
 export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpdated }: ProviderFormProps) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(!!editingProvider);
   const [isLoading, setIsLoading] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<TestProviderResponse | null>(null);
   const [configMode, setConfigMode] = useState<'simple' | 'advanced'>('simple');
-  const [presets, setPresets] = useState<ProviderPreset[]>([]);
-  const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const { toast } = useToast();
 
   // Form state for simple configuration
   const [simpleForm, setSimpleForm] = useState<SimpleProviderRequest>({
     name: '',
-    type: '',
+    platformId: '',
     apiKey: '',
     apiSecret: '',
     dailyQuota: 1000,
@@ -44,143 +95,123 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
   // Form state for advanced configuration
   const [advancedForm, setAdvancedForm] = useState<AdvancedProviderRequest>({
     name: '',
-    type: 'custom',
+    platformId: 'custom',
     apiKey: '',
     apiSecret: '',
     dailyQuota: 1000,
     isActive: true,
-    endpoint: '',
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json'
-    },
-    authentication: {
-      type: 'api-key',
-      headerName: 'X-API-Key',
-    },
-    payloadTemplate: {
-      from: '{{sender.email}}',
-      to: '{{recipients.0.email}}',
-      subject: '{{subject}}',
-      html: '{{htmlContent}}',
-      text: '{{textContent}}'
-    },
-    fieldMappings: {
-      sender: 'sender',
-      recipients: 'recipients',
-      subject: 'subject',
-      htmlContent: 'htmlContent'
-    },
+    customConfig: {
+      endpoint: '',
+      headers: {},
+      authentication: {
+        headerName: 'Authorization',
+        prefix: 'Bearer ',
+      }
+    }
   });
 
-  // Load provider presets
-  useEffect(() => {
-    const loadPresets = async () => {
-      setIsLoadingPresets(true);
-      try {
-        const response = await apiService.getProviderPresets();
-        if (response.success) {
-          // Convert the object to array format expected by the component
-          const presetsArray = Object.values(response.data).map(preset => ({
-            type: preset.type,
-            name: preset.name,
-            description: preset.description,
-            defaultConfig: {
-              endpoint: preset.endpoint,
-              method: preset.method,
-              headers: preset.headers,
-              authentication: preset.authentication,
-              payloadTemplate: preset.payloadTemplate,
-              fieldMappings: preset.fieldMappings,
-            }
-          }));
-          setPresets(presetsArray);
-        }
-      } catch (error) {
-        console.error('Failed to load provider presets:', error);
-        toast({
-          title: "Failed to load presets",
-          description: "Could not load provider presets",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoadingPresets(false);
-      }
-    };
-
-    loadPresets();
-  }, [toast]);
-
-  // Populate form when editing
+  // Initialize form with editing data
   useEffect(() => {
     if (editingProvider) {
+      setIsOpen(true);
       const provider = editingProvider;
+      
       setSimpleForm({
         name: provider.name,
-        type: provider.type,
-        apiKey: provider.config.apiKey,
-        apiSecret: provider.config.apiSecret || '',
+        platformId: provider.platformId,
+        apiKey: provider.apiKey,
+        apiSecret: provider.apiSecret || '',
         dailyQuota: provider.dailyQuota,
         isActive: provider.isActive,
       });
 
       setAdvancedForm({
         name: provider.name,
-        type: provider.type,
-        apiKey: provider.config.apiKey,
-        apiSecret: provider.config.apiSecret || '',
+        platformId: provider.platformId,
+        apiKey: provider.apiKey,
+        apiSecret: provider.apiSecret || '',
         dailyQuota: provider.dailyQuota,
         isActive: provider.isActive,
-        endpoint: provider.config.endpoint || '',
-        method: provider.config.method || 'POST',
-        headers: provider.config.headers || {},
-        authentication: provider.config.authentication || { type: 'api-key', headerName: 'X-API-Key' },
-        payloadTemplate: provider.config.payloadTemplate || {},
-        fieldMappings: provider.config.fieldMappings || {},
+        customConfig: provider.customConfig || {
+          endpoint: '',
+          headers: {},
+          authentication: {
+            headerName: 'Authorization',
+            prefix: 'Bearer ',
+          }
+        }
       });
 
-      // Determine config mode based on whether it has custom endpoint
-      setConfigMode(provider.config.endpoint ? 'advanced' : 'simple');
+      // Set config mode based on whether it's a custom provider
+      setConfigMode(provider.platformId === 'custom' ? 'advanced' : 'simple');
     }
   }, [editingProvider]);
 
-  const handlePresetSelect = (presetType: string) => {
-    const preset = presets.find(p => p.type === presetType);
-    if (preset) {
-      setSimpleForm(prev => ({
-        ...prev,
-        type: preset.type,
-        // Apply default config if available
-        ...preset.defaultConfig,
-      }));
+  const resetForm = () => {
+    setSimpleForm({
+      name: '',
+      platformId: '',
+      apiKey: '',
+      apiSecret: '',
+      dailyQuota: 1000,
+      isActive: true,
+    });
+    setAdvancedForm({
+      name: '',
+      platformId: 'custom',
+      apiKey: '',
+      apiSecret: '',
+      dailyQuota: 1000,
+      isActive: true,
+      customConfig: {
+        endpoint: '',
+        headers: {},
+        authentication: {
+          headerName: 'Authorization',
+          prefix: 'Bearer ',
+        }
+      }
+    });
+    setTestResult(null);
+    setConfigMode('simple');
+  };
+
+  const handleClose = () => {
+    setIsOpen(false);
+    if (!editingProvider) {
+      resetForm();
+    }
+    if (onProviderUpdated) {
+      onProviderUpdated();
     }
   };
 
-  const testConfiguration = async () => {
-    setIsTesting(true);
-    setTestResult(null);
-
+  const testProvider = async () => {
     try {
-      const testData = configMode === 'simple' ? simpleForm : {
-        name: advancedForm.name,
-        type: advancedForm.type,
-        apiKey: advancedForm.apiKey,
-        apiSecret: advancedForm.apiSecret,
-        dailyQuota: advancedForm.dailyQuota,
-        isActive: advancedForm.isActive,
-      };
-
+      setIsTesting(true);
+      const testData = configMode === 'simple' ? simpleForm : advancedForm;
       const response = await apiService.testProviderConfiguration(testData);
       setTestResult(response.data);
-
-      toast({
-        title: response.data.isValid ? "Configuration Valid" : "Configuration Invalid",
-        description: response.data.message,
-        variant: response.data.isValid ? "default" : "destructive",
-      });
+      
+      if (response.data.isValid) {
+        toast({
+          title: "Test Successful",
+          description: response.data.message,
+        });
+      } else {
+        toast({
+          title: "Test Failed",
+          description: response.data.message,
+          variant: "destructive",
+        });
+      }
     } catch (error) {
       console.error('Test failed:', error);
+      setTestResult({
+        isValid: false,
+        message: 'Failed to test provider configuration',
+        errors: ['Network error or invalid configuration']
+      });
       toast({
         title: "Test Failed",
         description: "Failed to test provider configuration",
@@ -192,83 +223,39 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
   };
 
   const handleSubmit = async () => {
-    setIsLoading(true);
-
     try {
+      setIsLoading(true);
+      
       if (editingProvider) {
         // Update existing provider
-        const updateData = configMode === 'simple' ? simpleForm : {
-          name: advancedForm.name,
-          type: advancedForm.type,
-          apiKey: advancedForm.apiKey,
-          apiSecret: advancedForm.apiSecret,
-          dailyQuota: advancedForm.dailyQuota,
-          isActive: advancedForm.isActive,
-        };
-
+        const updateData = configMode === 'simple' ? simpleForm : advancedForm;
         await apiService.updateDynamicProvider(editingProvider.id, updateData);
         toast({
           title: "Provider Updated",
-          description: `${updateData.name} has been updated successfully`,
-        });
-        onProviderUpdated?.();
-      } else {
-        // Create new provider
-        const response = configMode === 'simple' 
-          ? await apiService.createSimpleProvider(simpleForm)
-          : await apiService.createAdvancedProvider(advancedForm);
-
-        toast({
-          title: "Provider Created",
-          description: `${response.data.name} has been created successfully`,
+          description: "Email provider has been updated successfully",
         });
         onProviderCreated();
+        handleClose();
+      } else {
+        // Create new provider
+        if (configMode === 'simple') {
+          await apiService.createSimpleProvider(simpleForm);
+        } else {
+          await apiService.createAdvancedProvider(advancedForm);
+        }
+        
+        toast({
+          title: "Provider Created",
+          description: "Email provider has been created successfully",
+        });
+        onProviderCreated();
+        handleClose();
       }
-
-      // Reset form
-      setSimpleForm({
-        name: '',
-        type: '',
-        apiKey: '',
-        apiSecret: '',
-        dailyQuota: 1000,
-        isActive: true,
-      });
-      setAdvancedForm({
-        name: '',
-        type: 'custom',
-        apiKey: '',
-        apiSecret: '',
-        dailyQuota: 1000,
-        isActive: true,
-        endpoint: '',
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        authentication: { type: 'api-key', headerName: 'X-API-Key' },
-        payloadTemplate: {
-          from: '{{sender.email}}',
-          to: '{{recipients.0.email}}',
-          subject: '{{subject}}',
-          html: '{{htmlContent}}',
-          text: '{{textContent}}'
-        },
-        fieldMappings: {
-          sender: 'sender',
-          recipients: 'recipients',
-          subject: 'subject',
-          htmlContent: 'htmlContent'
-        },
-      });
-      setTestResult(null);
-      setIsOpen(false);
     } catch (error) {
-      console.error('Submit failed:', error);
+      console.error('Failed to save provider:', error);
       toast({
         title: "Error",
-        description: `Failed to ${editingProvider ? 'update' : 'create'} provider`,
+        description: "Failed to save email provider",
         variant: "destructive",
       });
     } finally {
@@ -276,454 +263,317 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
     }
   };
 
-  const renderSimpleForm = () => (
-    <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="name">Provider Name</Label>
-          <Input
-            id="name"
-            value={simpleForm.name}
-            onChange={(e) => setSimpleForm(prev => ({ ...prev, name: e.target.value }))}
-            placeholder="My Email Provider"
-          />
-        </div>
-        <div>
-          <Label htmlFor="type">Provider Type</Label>
-          <Select value={simpleForm.type} onValueChange={(value) => {
-            setSimpleForm(prev => ({ ...prev, type: value }));
-            handlePresetSelect(value);
-          }}>
-            <SelectTrigger>
-              <SelectValue placeholder="Select provider type" />
-            </SelectTrigger>
-            <SelectContent>
-              {presets.map((preset) => (
-                <SelectItem key={preset.type} value={preset.type}>
-                  <div>
-                    <div className="font-medium">{preset.name}</div>
-                    <div className="text-sm text-muted-foreground">{preset.description}</div>
-                  </div>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div>
-        <Label htmlFor="apiKey">API Key</Label>
-        <Input
-          id="apiKey"
-          type="password"
-          value={simpleForm.apiKey}
-          onChange={(e) => setSimpleForm(prev => ({ ...prev, apiKey: e.target.value }))}
-          placeholder="Enter your API key"
-        />
-      </div>
-
-      {(simpleForm.type === 'mailgun' || simpleForm.type === 'aws-ses') && (
-        <div>
-          <Label htmlFor="apiSecret">API Secret / Domain</Label>
-          <Input
-            id="apiSecret"
-            value={simpleForm.apiSecret}
-            onChange={(e) => setSimpleForm(prev => ({ ...prev, apiSecret: e.target.value }))}
-            placeholder="Enter API secret or domain"
-          />
-        </div>
-      )}
-
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="dailyQuota">Daily Quota</Label>
-          <Input
-            id="dailyQuota"
-            type="number"
-            value={simpleForm.dailyQuota}
-            onChange={(e) => setSimpleForm(prev => ({ ...prev, dailyQuota: parseInt(e.target.value) || 0 }))}
-            placeholder="1000"
-          />
-        </div>
-        <div className="flex items-center space-x-2 mt-6">
-          <Switch
-            id="isActive"
-            checked={simpleForm.isActive}
-            onCheckedChange={(checked) => setSimpleForm(prev => ({ ...prev, isActive: checked }))}
-          />
-          <Label htmlFor="isActive">Active</Label>
-        </div>
-      </div>
-    </div>
-  );
-
-  const renderAdvancedForm = () => (
-    <div className="space-y-6">
-      {/* Basic Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Basic Configuration</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="adv-name">Provider Name</Label>
-              <Input
-                id="adv-name"
-                value={advancedForm.name}
-                onChange={(e) => setAdvancedForm(prev => ({ ...prev, name: e.target.value }))}
-                placeholder="Custom Email Provider"
-              />
-            </div>
-            <div>
-              <Label htmlFor="adv-type">Provider Type</Label>
-              <Input
-                id="adv-type"
-                value={advancedForm.type}
-                onChange={(e) => setAdvancedForm(prev => ({ ...prev, type: e.target.value }))}
-                placeholder="custom"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="adv-apiKey">API Key</Label>
-              <Input
-                id="adv-apiKey"
-                type="password"
-                value={advancedForm.apiKey}
-                onChange={(e) => setAdvancedForm(prev => ({ ...prev, apiKey: e.target.value }))}
-                placeholder="Enter your API key"
-              />
-            </div>
-            <div>
-              <Label htmlFor="adv-apiSecret">API Secret (Optional)</Label>
-              <Input
-                id="adv-apiSecret"
-                value={advancedForm.apiSecret}
-                onChange={(e) => setAdvancedForm(prev => ({ ...prev, apiSecret: e.target.value }))}
-                placeholder="Enter API secret if required"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="adv-dailyQuota">Daily Quota</Label>
-              <Input
-                id="adv-dailyQuota"
-                type="number"
-                value={advancedForm.dailyQuota}
-                onChange={(e) => setAdvancedForm(prev => ({ ...prev, dailyQuota: parseInt(e.target.value) || 0 }))}
-                placeholder="1000"
-              />
-            </div>
-            <div className="flex items-center space-x-2 mt-6">
-              <Switch
-                id="adv-isActive"
-                checked={advancedForm.isActive}
-                onCheckedChange={(checked) => setAdvancedForm(prev => ({ ...prev, isActive: checked }))}
-              />
-              <Label htmlFor="adv-isActive">Active</Label>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* API Configuration */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">API Configuration</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-3 gap-4">
-            <div className="col-span-2">
-              <Label htmlFor="endpoint">API Endpoint</Label>
-              <Input
-                id="endpoint"
-                value={advancedForm.endpoint}
-                onChange={(e) => setAdvancedForm(prev => ({ ...prev, endpoint: e.target.value }))}
-                placeholder="https://api.example.com/v1/send"
-              />
-            </div>
-            <div>
-              <Label htmlFor="method">HTTP Method</Label>
-              <Select value={advancedForm.method} onValueChange={(value) => setAdvancedForm(prev => ({ ...prev, method: value }))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="POST">POST</SelectItem>
-                  <SelectItem value="PUT">PUT</SelectItem>
-                  <SelectItem value="PATCH">PATCH</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div>
-            <Label htmlFor="headers">HTTP Headers (JSON)</Label>
-            <Textarea
-              id="headers"
-              value={JSON.stringify(advancedForm.headers, null, 2)}
-              onChange={(e) => {
-                try {
-                  const headers = JSON.parse(e.target.value);
-                  setAdvancedForm(prev => ({ ...prev, headers }));
-                } catch {
-                  // Invalid JSON, don't update
-                }
-              }}
-              placeholder={JSON.stringify({ 
-                'Content-Type': 'application/json', 
-                'Accept': 'application/json',
-                'Authorization': 'Bearer {{apiKey}}'
-              }, null, 2)}
-              rows={4}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Authentication */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Authentication</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="auth-type">Authentication Type</Label>
-              <Select 
-                value={advancedForm.authentication?.type} 
-                onValueChange={(value: 'api-key' | 'basic' | 'bearer') => 
-                  setAdvancedForm(prev => ({ 
-                    ...prev, 
-                    authentication: { ...prev.authentication!, type: value } 
-                  }))
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="api-key">API Key</SelectItem>
-                  <SelectItem value="basic">Basic Auth</SelectItem>
-                  <SelectItem value="bearer">Bearer Token</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label htmlFor="header-name">Header Name</Label>
-              <Input
-                id="header-name"
-                value={advancedForm.authentication?.headerName || ''}
-                onChange={(e) => setAdvancedForm(prev => ({ 
-                  ...prev, 
-                  authentication: { ...prev.authentication!, headerName: e.target.value } 
-                }))}
-                placeholder="X-API-Key"
-              />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Payload Template */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Payload Template</CardTitle>
-          <CardDescription>Define how email data maps to your API payload</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div>
-            <Label htmlFor="payload-template">Payload Template (JSON)</Label>
-            <Textarea
-              id="payload-template"
-              value={JSON.stringify(advancedForm.payloadTemplate, null, 2)}
-              onChange={(e) => {
-                try {
-                  const payloadTemplate = JSON.parse(e.target.value);
-                  setAdvancedForm(prev => ({ ...prev, payloadTemplate }));
-                } catch {
-                  // Invalid JSON, don't update
-                }
-              }}
-              placeholder={JSON.stringify({
-                from: '{{sender.email}}',
-                to: '{{recipients.0.email}}',
-                subject: '{{subject}}',
-                html: '{{htmlContent}}',
-                text: '{{textContent}}'
-              }, null, 2)}
-              rows={8}
-            />
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Field Mappings */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg">Field Mappings</CardTitle>
-          <CardDescription>Map internal field names to your API's expected field names</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="mapping-sender">Sender Field</Label>
-              <Input
-                id="mapping-sender"
-                value={advancedForm.fieldMappings?.sender || 'sender'}
-                onChange={(e) => setAdvancedForm(prev => ({ 
-                  ...prev, 
-                  fieldMappings: { ...prev.fieldMappings!, sender: e.target.value } 
-                }))}
-                placeholder="sender"
-              />
-            </div>
-            <div>
-              <Label htmlFor="mapping-recipients">Recipients Field</Label>
-              <Input
-                id="mapping-recipients"
-                value={advancedForm.fieldMappings?.recipients || 'recipients'}
-                onChange={(e) => setAdvancedForm(prev => ({ 
-                  ...prev, 
-                  fieldMappings: { ...prev.fieldMappings!, recipients: e.target.value } 
-                }))}
-                placeholder="recipients"
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="mapping-subject">Subject Field</Label>
-              <Input
-                id="mapping-subject"
-                value={advancedForm.fieldMappings?.subject || 'subject'}
-                onChange={(e) => setAdvancedForm(prev => ({ 
-                  ...prev, 
-                  fieldMappings: { ...prev.fieldMappings!, subject: e.target.value } 
-                }))}
-                placeholder="subject"
-              />
-            </div>
-            <div>
-              <Label htmlFor="mapping-html">HTML Content Field</Label>
-              <Input
-                id="mapping-html"
-                value={advancedForm.fieldMappings?.htmlContent || 'htmlContent'}
-                onChange={(e) => setAdvancedForm(prev => ({ 
-                  ...prev, 
-                  fieldMappings: { ...prev.fieldMappings!, htmlContent: e.target.value } 
-                }))}
-                placeholder="htmlContent"
-              />
-            </div>
-          </div>
-          <div>
-            <Label htmlFor="mapping-text">Text Content Field (Optional)</Label>
-            <Input
-              id="mapping-text"
-              value={advancedForm.fieldMappings?.textContent || ''}
-              onChange={(e) => setAdvancedForm(prev => ({ 
-                ...prev, 
-                fieldMappings: { ...prev.fieldMappings!, textContent: e.target.value } 
-              }))}
-              placeholder="textContent"
-            />
-          </div>
-        </CardContent>
-      </Card>
-    </div>
-  );
+  const selectedPreset = PLATFORM_PRESETS[simpleForm.platformId as keyof typeof PLATFORM_PRESETS];
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="h-4 w-4 mr-2" />
-          {editingProvider ? 'Edit Provider' : 'Add Provider'}
-        </Button>
+        {!editingProvider && (
+          <Button>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Provider
+          </Button>
+        )}
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {editingProvider ? 'Edit Email Provider' : 'Add New Email Provider'}
+            {editingProvider ? 'Edit Email Provider' : 'Add Email Provider'}
           </DialogTitle>
         </DialogHeader>
 
         <Tabs value={configMode} onValueChange={(value) => setConfigMode(value as 'simple' | 'advanced')}>
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="simple">Simple Configuration</TabsTrigger>
-            <TabsTrigger value="advanced">Advanced Configuration</TabsTrigger>
+            <TabsTrigger value="simple">Simple Setup</TabsTrigger>
+            <TabsTrigger value="advanced">Advanced Setup</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="simple" className="space-y-6">
+          <TabsContent value="simple" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Simple Provider Setup</CardTitle>
+                <CardTitle>Provider Configuration</CardTitle>
                 <CardDescription>
-                  Configure a provider using built-in presets for popular email services
+                  Configure a supported email service provider with API credentials
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                {renderSimpleForm()}
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="name">Provider Name</Label>
+                    <Input
+                      id="name"
+                      placeholder="My SendGrid Provider"
+                      value={simpleForm.name}
+                      onChange={(e) => setSimpleForm(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="platform">Platform</Label>
+                    <Select
+                      value={simpleForm.platformId}
+                      onValueChange={(value) => setSimpleForm(prev => ({ ...prev, platformId: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select platform" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(PLATFORM_PRESETS).map(([key, preset]) => (
+                          <SelectItem key={key} value={key}>
+                            <div className="flex items-center gap-2">
+                              <span>{preset.name}</span>
+                              {preset.requiresSecret && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Requires Secret
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {selectedPreset && (
+                  <div className="p-3 bg-muted rounded-lg">
+                    <p className="text-sm text-muted-foreground">
+                      {selectedPreset.description}
+                    </p>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="apiKey">API Key</Label>
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    placeholder="Enter your API key"
+                    value={simpleForm.apiKey}
+                    onChange={(e) => setSimpleForm(prev => ({ ...prev, apiKey: e.target.value }))}
+                  />
+                </div>
+
+                {selectedPreset?.requiresSecret && (
+                  <div className="space-y-2">
+                    <Label htmlFor="apiSecret">API Secret</Label>
+                    <Input
+                      id="apiSecret"
+                      type="password"
+                      placeholder="Enter your API secret"
+                      value={simpleForm.apiSecret}
+                      onChange={(e) => setSimpleForm(prev => ({ ...prev, apiSecret: e.target.value }))}
+                    />
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="dailyQuota">Daily Quota</Label>
+                    <Input
+                      id="dailyQuota"
+                      type="number"
+                      min="1"
+                      value={simpleForm.dailyQuota}
+                      onChange={(e) => setSimpleForm(prev => ({ ...prev, dailyQuota: parseInt(e.target.value) || 0 }))}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2 pt-6">
+                    <Switch
+                      id="isActive"
+                      checked={simpleForm.isActive}
+                      onCheckedChange={(checked) => setSimpleForm(prev => ({ ...prev, isActive: checked }))}
+                    />
+                    <Label htmlFor="isActive">Active</Label>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="advanced" className="space-y-6">
-            {renderAdvancedForm()}
+          <TabsContent value="advanced" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Advanced Configuration</CardTitle>
+                <CardDescription>
+                  Configure a custom email service provider with full control
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="adv-name">Provider Name</Label>
+                    <Input
+                      id="adv-name"
+                      placeholder="My Custom Provider"
+                      value={advancedForm.name}
+                      onChange={(e) => setAdvancedForm(prev => ({ ...prev, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="adv-platform">Platform Type</Label>
+                    <Select
+                      value={advancedForm.platformId}
+                      onValueChange={(value) => setAdvancedForm(prev => ({ ...prev, platformId: value }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(PLATFORM_PRESETS).map(([key, preset]) => (
+                          <SelectItem key={key} value={key}>
+                            {preset.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="adv-apiKey">API Key</Label>
+                  <Input
+                    id="adv-apiKey"
+                    type="password"
+                    placeholder="Enter your API key"
+                    value={advancedForm.apiKey}
+                    onChange={(e) => setAdvancedForm(prev => ({ ...prev, apiKey: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="adv-apiSecret">API Secret (Optional)</Label>
+                  <Input
+                    id="adv-apiSecret"
+                    type="password"
+                    placeholder="Enter your API secret if required"
+                    value={advancedForm.apiSecret}
+                    onChange={(e) => setAdvancedForm(prev => ({ ...prev, apiSecret: e.target.value }))}
+                  />
+                </div>
+
+                {advancedForm.platformId === 'custom' && (
+                  <>
+                    <Separator />
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Custom Configuration</h4>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="endpoint">API Endpoint</Label>
+                        <Input
+                          id="endpoint"
+                          placeholder="https://api.example.com/send"
+                          value={advancedForm.customConfig?.endpoint || ''}
+                          onChange={(e) => setAdvancedForm(prev => ({
+                            ...prev,
+                            customConfig: {
+                              ...prev.customConfig,
+                              endpoint: e.target.value
+                            }
+                          }))}
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                          <Label htmlFor="headerName">Auth Header Name</Label>
+                          <Input
+                            id="headerName"
+                            placeholder="Authorization"
+                            value={advancedForm.customConfig?.authentication?.headerName || ''}
+                            onChange={(e) => setAdvancedForm(prev => ({
+                              ...prev,
+                              customConfig: {
+                                ...prev.customConfig,
+                                authentication: {
+                                  ...prev.customConfig?.authentication,
+                                  headerName: e.target.value
+                                }
+                              }
+                            }))}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="prefix">Auth Prefix</Label>
+                          <Input
+                            id="prefix"
+                            placeholder="Bearer "
+                            value={advancedForm.customConfig?.authentication?.prefix || ''}
+                            onChange={(e) => setAdvancedForm(prev => ({
+                              ...prev,
+                              customConfig: {
+                                ...prev.customConfig,
+                                authentication: {
+                                  ...prev.customConfig?.authentication,
+                                  prefix: e.target.value
+                                }
+                              }
+                            }))}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="adv-dailyQuota">Daily Quota</Label>
+                    <Input
+                      id="adv-dailyQuota"
+                      type="number"
+                      min="1"
+                      value={advancedForm.dailyQuota}
+                      onChange={(e) => setAdvancedForm(prev => ({ ...prev, dailyQuota: parseInt(e.target.value) || 0 }))}
+                    />
+                  </div>
+                  <div className="flex items-center space-x-2 pt-6">
+                    <Switch
+                      id="adv-isActive"
+                      checked={advancedForm.isActive}
+                      onCheckedChange={(checked) => setAdvancedForm(prev => ({ ...prev, isActive: checked }))}
+                    />
+                    <Label htmlFor="adv-isActive">Active</Label>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
 
         {/* Test Results */}
         {testResult && (
-          <Card className={`border-2 ${testResult.isValid ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'}`}>
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-2 mb-2">
+          <Card className={testResult.isValid ? "border-green-500" : "border-red-500"}>
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
                 {testResult.isValid ? (
-                  <CheckCircle className="h-5 w-5 text-green-600" />
+                  <CheckCircle className="h-5 w-5 text-green-500" />
                 ) : (
-                  <AlertCircle className="h-5 w-5 text-red-600" />
+                  <AlertCircle className="h-5 w-5 text-red-500" />
                 )}
-                <span className={`font-medium ${testResult.isValid ? 'text-green-900' : 'text-red-900'}`}>
-                  {testResult.isValid ? 'Configuration Valid' : 'Configuration Invalid'}
+                <span className="font-medium">
+                  {testResult.isValid ? "Configuration Valid" : "Configuration Invalid"}
                 </span>
               </div>
-              <p className={`text-sm ${testResult.isValid ? 'text-green-700' : 'text-red-700'}`}>
+              <p className="text-sm text-muted-foreground mt-2">
                 {testResult.message}
               </p>
               {testResult.errors && testResult.errors.length > 0 && (
-                <div className="mt-2">
-                  <div className="text-sm font-medium text-red-700">Errors:</div>
-                  <ul className="list-disc list-inside text-sm text-red-700">
-                    {testResult.errors.map((error, index) => (
-                      <li key={index}>{error}</li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {testResult.generatedPayload && (
-                <div className="mt-2">
-                  <div className="text-sm font-medium text-green-700">Generated Payload Preview:</div>
-                  <pre className="text-xs bg-white p-2 rounded border mt-1 overflow-x-auto">
-                    {JSON.stringify(testResult.generatedPayload, null, 2)}
-                  </pre>
-                </div>
+                <ul className="text-sm text-red-600 mt-2 list-disc list-inside">
+                  {testResult.errors.map((error, index) => (
+                    <li key={index}>{error}</li>
+                  ))}
+                </ul>
               )}
             </CardContent>
           </Card>
         )}
 
+        {/* Actions */}
         <div className="flex justify-between">
           <Button
             variant="outline"
-            onClick={testConfiguration}
-            disabled={isTesting || !((configMode === 'simple' && simpleForm.name && simpleForm.type && simpleForm.apiKey) || 
-                                     (configMode === 'advanced' && advancedForm.name && advancedForm.endpoint && advancedForm.apiKey))}
+            onClick={testProvider}
+            disabled={isTesting || isLoading}
           >
             {isTesting ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -732,16 +582,12 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
             )}
             Test Configuration
           </Button>
-
+          
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setIsOpen(false)}>
+            <Button variant="outline" onClick={handleClose}>
               Cancel
             </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={isLoading || !((configMode === 'simple' && simpleForm.name && simpleForm.type && simpleForm.apiKey) || 
-                                      (configMode === 'advanced' && advancedForm.name && advancedForm.endpoint && advancedForm.apiKey))}
-            >
+            <Button onClick={handleSubmit} disabled={isLoading || isTesting}>
               {isLoading ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
               ) : null}
@@ -752,4 +598,4 @@ export function ProviderForm({ onProviderCreated, editingProvider, onProviderUpd
       </DialogContent>
     </Dialog>
   );
-} 
+}
